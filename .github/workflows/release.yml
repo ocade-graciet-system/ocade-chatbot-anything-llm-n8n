@@ -54,19 +54,61 @@ jobs:
           find . -type f -name "*.css" -exec dos2unix {} \;
           find . -type f -name "*.json" -exec dos2unix {} \;
 
-      # Étape pour utiliser votre propre action personnalisée
-      # Cette action utilise votre action personnalisée 'action-wp-metadata' pour incrémenter le numéro de version dans le fichier 'ocade-fusion-anythingllm-chatbot.php'
-      - name: Increment action step
+      # Étape pour incrémenter la version et générer metadata.json
+      - name: Increment version and generate metadata
         id: increment
-        uses: ocade-graciet-system/action-wp-metadata@v1
-        with:
-          indexFile: '${{ env.PLUGIN_FILE }}'
+        run: |
+          # Extraire la version actuelle du fichier PHP
+          CURRENT_VERSION=$(grep -oP "Version:\s*\K[\d.]+" ${{ env.PLUGIN_FILE }})
+          echo "Version actuelle: $CURRENT_VERSION"
+
+          # Incrémenter la version (dernière partie)
+          IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
+          LAST_INDEX=$((${#VERSION_PARTS[@]} - 1))
+          VERSION_PARTS[$LAST_INDEX]=$((${VERSION_PARTS[$LAST_INDEX]} + 1))
+          NEW_VERSION=$(IFS='.'; echo "${VERSION_PARTS[*]}")
+          echo "Nouvelle version: $NEW_VERSION"
+
+          # Mettre à jour la version dans le fichier PHP
+          sed -i "s/Version:\s*$CURRENT_VERSION/Version: $NEW_VERSION/" ${{ env.PLUGIN_FILE }}
+
+          # Extraire les métadonnées et créer metadata.json
+          PLUGIN_NAME=$(grep -oP "Plugin Name:\s*\K.*" ${{ env.PLUGIN_FILE }})
+          PLUGIN_URI=$(grep -oP "Plugin URI:\s*\K.*" ${{ env.PLUGIN_FILE }})
+          DESCRIPTION=$(grep -oP "Description:\s*\K.*" ${{ env.PLUGIN_FILE }})
+          AUTHOR=$(grep -oP "Author:\s*\K.*" ${{ env.PLUGIN_FILE }})
+          AUTHOR_URI=$(grep -oP "Author URI:\s*\K.*" ${{ env.PLUGIN_FILE }})
+          LICENSE=$(grep -oP "License:\s*\K.*" ${{ env.PLUGIN_FILE }})
+          TEXT_DOMAIN=$(grep -oP "Text Domain:\s*\K.*" ${{ env.PLUGIN_FILE }})
+          REQUIRES_WP=$(grep -oP "Requires at least:\s*\K.*" ${{ env.PLUGIN_FILE }})
+          REQUIRES_PHP=$(grep -oP "Requires PHP:\s*\K.*" ${{ env.PLUGIN_FILE }})
+
+          cat > metadata.json << EOF
+          {
+            "plugin_name": "$PLUGIN_NAME",
+            "plugin_uri": "$PLUGIN_URI",
+            "description": "$DESCRIPTION",
+            "version": "$NEW_VERSION",
+            "author": "$AUTHOR",
+            "author_uri": "$AUTHOR_URI",
+            "license": "$LICENSE",
+            "text_domain": "$TEXT_DOMAIN",
+            "requires_at_least": "$REQUIRES_WP",
+            "requires_php": "$REQUIRES_PHP",
+            "is_plugin": true
+          }
+          EOF
+
+          # Exporter la version pour les étapes suivantes
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "✅ Version mise à jour: $NEW_VERSION"
+          echo "✅ metadata.json généré"
 
       # Étape pour faire le commit du changement de version
-      # Cette action commit le fichier 'ocade-fusion-anythingllm-chatbot.php' avec le message "[bot] Updated library version"
-      - name: Commit new comment version
+      - name: Commit new version
         run: |
-          git commit ${{ env.PLUGIN_FILE }} -m "[bot] Updated library version"
+          git add ${{ env.PLUGIN_FILE }} metadata.json
+          git commit -m "[bot] Updated version to ${{ steps.increment.outputs.version }}"
         
       # Mettre en cache les dépendances npm
       # Cette action met en cache les dépendances npm pour éviter de les réinstaller à chaque fois
@@ -102,12 +144,6 @@ jobs:
       # Étape pour vérifier l'état du dépot
       - name: Check Git status
         run: git status
-
-      # Étape pour ajouter le fichier metadata.json au dépot
-      - name: Add & Commit metadata.json
-        run: |
-          git add metadata.json || true
-          git diff-index --quiet HEAD || git commit -m "[bot] Updated metadata"
 
       # Étape pour pousser le nouveau commit vers la branche master
       - name: Push new version to master branch
