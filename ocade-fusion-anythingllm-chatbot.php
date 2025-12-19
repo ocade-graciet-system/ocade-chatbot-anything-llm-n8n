@@ -19,7 +19,7 @@
 
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; 
 }
 
 // Plugin constants
