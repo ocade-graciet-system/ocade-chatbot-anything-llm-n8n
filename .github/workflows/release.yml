@@ -14,7 +14,6 @@ permissions:
 
 # Définir le répertoire de travail pour le plugin
 env:
-  PLUGIN_DIR: ocade-fusion-anythingllm-chatbot
   PLUGIN_FILE: ocade-fusion-anythingllm-chatbot.php
 
 jobs:
@@ -52,13 +51,13 @@ jobs:
         id: increment
         uses: ocade-graciet-system/action-wp-metadata@v1
         with:
-          indexFile: '${{ env.PLUGIN_DIR }}/${{ env.PLUGIN_FILE }}'
+          indexFile: '${{ env.PLUGIN_FILE }}'
 
       # Étape pour faire le commit du changement de version
       # Cette action commit le fichier 'ocade-fusion-anythingllm-chatbot.php' avec le message "[bot] Updated library version"
       - name: Commit new comment version
         run: |
-          git commit ${{ env.PLUGIN_DIR }}/${{ env.PLUGIN_FILE }} -m "[bot] Updated library version"
+          git commit ${{ env.PLUGIN_FILE }} -m "[bot] Updated library version"
         
       # Mettre en cache les dépendances npm
       # Cette action met en cache les dépendances npm pour éviter de les réinstaller à chaque fois
@@ -88,7 +87,7 @@ jobs:
       # Étape pour ajouter le dossier généré au dépot
       - name: Add & Commit Build Folder
         run: |
-          git add ${{ env.PLUGIN_DIR }}/build || true
+          git add build || true
           git diff --cached --quiet || git commit -m "[bot] Updated build"
 
       # Étape pour vérifier l'état du dépot
@@ -98,7 +97,7 @@ jobs:
       # Étape pour ajouter le fichier metadata.json au dépot
       - name: Add & Commit metadata.json
         run: |
-          git add ${{ env.PLUGIN_DIR }}/metadata.json || git add metadata.json || true
+          git add metadata.json || true
           git diff-index --quiet HEAD || git commit -m "[bot] Updated metadata"
 
       # Étape pour pousser le nouveau commit vers la branche master
@@ -110,7 +109,7 @@ jobs:
       
       # Étape pour créer une archive .zip du projet
       - name: Create zip archive
-        run: zip --symlinks -r ocade-fusion-anythingllm-chatbot.zip ./${{ env.PLUGIN_DIR }}
+        run: zip --symlinks -r ocade-fusion-anythingllm-chatbot.zip . -x ".git/*" -x ".github/*"
       
       # Étape pour publier la release
       - name: Publish release
@@ -122,4 +121,4 @@ jobs:
           title: "${{ steps.increment.outputs.version }}"
           files: |
             ocade-fusion-anythingllm-chatbot.zip
-            ./${{ env.PLUGIN_DIR }}/metadata.json
+            ./metadata.json
