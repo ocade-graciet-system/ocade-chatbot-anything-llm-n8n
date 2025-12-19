@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: Ocade Fusion AnythingLLM Chatbot
  * Plugin URI: https://ocadefusion.fr/plugins/anythingllm-chatbot

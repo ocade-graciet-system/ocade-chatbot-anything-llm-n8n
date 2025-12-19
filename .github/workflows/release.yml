@@ -44,7 +44,16 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-      
+
+      # Convertir les fins de ligne CRLF (Windows) en LF (Linux)
+      - name: Fix line endings
+        run: |
+          sudo apt-get install -y dos2unix
+          find . -type f -name "*.php" -exec dos2unix {} \;
+          find . -type f -name "*.js" -exec dos2unix {} \;
+          find . -type f -name "*.css" -exec dos2unix {} \;
+          find . -type f -name "*.json" -exec dos2unix {} \;
+
       # Étape pour utiliser votre propre action personnalisée
       # Cette action utilise votre action personnalisée 'action-wp-metadata' pour incrémenter le numéro de version dans le fichier 'ocade-fusion-anythingllm-chatbot.php'
       - name: Increment action step
