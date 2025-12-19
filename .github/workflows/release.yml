@@ -1,0 +1,125 @@
+# Le nom de votre workflow
+name: Increment Version and Run Build
+
+# L'événement qui déclenche le workflow
+# Ce workflow sera déclenché chaque fois qu'un code est poussé sur la branche master
+on:
+  push:
+    branches:
+      - master
+permissions:
+  contents: write
+  packages: write
+  actions: write
+
+# Définir le répertoire de travail pour le plugin
+env:
+  PLUGIN_DIR: ocade-fusion-anythingllm-chatbot
+  PLUGIN_FILE: ocade-fusion-anythingllm-chatbot.php
+
+jobs:
+  incremental-version:
+    # Le type de runner que le job va utiliser
+    # Ce job sera exécuté sur une machine virtuelle basée sur Ubuntu
+    runs-on: ubuntu-latest
+
+    # La séquence des étapes qui constitue le job
+    steps:
+      # Étape pour extraire le contenu du dépot
+      # Cette action copie le contenu du dépot sur la machine virtuelle pour pouvoir travailler dessus
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      # Étape pour configurer l'environnement Node.js
+      # Cette action installe Node.js sur la machine virtuelle et le configure pour utiliser le registre npm de GitHub
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://npm.pkg.github.com'
+      
+      # Étape pour configurer Git
+      # Cette action configure Git pour utiliser l'adresse e-mail et le nom d'utilisateur du bot GitHub Actions pour les commits
+      - name: Git config
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+      
+      # Étape pour utiliser votre propre action personnalisée
+      # Cette action utilise votre action personnalisée 'action-wp-metadata' pour incrémenter le numéro de version dans le fichier 'ocade-fusion-anythingllm-chatbot.php'
+      - name: Increment action step
+        id: increment
+        uses: ocade-graciet-system/action-wp-metadata@v1
+        with:
+          indexFile: '${{ env.PLUGIN_DIR }}/${{ env.PLUGIN_FILE }}'
+
+      # Étape pour faire le commit du changement de version
+      # Cette action commit le fichier 'ocade-fusion-anythingllm-chatbot.php' avec le message "[bot] Updated library version"
+      - name: Commit new comment version
+        run: |
+          git commit ${{ env.PLUGIN_DIR }}/${{ env.PLUGIN_FILE }} -m "[bot] Updated library version"
+        
+      # Mettre en cache les dépendances npm
+      # Cette action met en cache les dépendances npm pour éviter de les réinstaller à chaque fois
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # Étape pour exécuter 'npm run build'
+      # Cette action exécute 'npm ci' pour installer les dépendances du projet, puis 'npm run build' pour générer le build du projet
+      # - name: Run Build
+      #   run: |
+      #     pwd
+      #     ls -la
+      #     npm i  # Utilisation de npm ci au lieu de npm install
+      #     npm run build || echo "Build failed with exit code $?"
+
+      # Étape pour vérifier le contenu du répertoire de travail.
+      - name: Check working directory
+        run: |
+          echo "Checking contents of working directory..."
+          ls -la
+
+      # Étape pour ajouter le dossier généré au dépot
+      - name: Add & Commit Build Folder
+        run: |
+          git add ${{ env.PLUGIN_DIR }}/build || true
+          git diff --cached --quiet || git commit -m "[bot] Updated build"
+
+      # Étape pour vérifier l'état du dépot
+      - name: Check Git status
+        run: git status
+
+      # Étape pour ajouter le fichier metadata.json au dépot
+      - name: Add & Commit metadata.json
+        run: |
+          git add ${{ env.PLUGIN_DIR }}/metadata.json || git add metadata.json || true
+          git diff-index --quiet HEAD || git commit -m "[bot] Updated metadata"
+
+      # Étape pour pousser le nouveau commit vers la branche master
+      - name: Push new version to master branch
+        uses: ocade-graciet-system/action-push-master@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: master
+      
+      # Étape pour créer une archive .zip du projet
+      - name: Create zip archive
+        run: zip --symlinks -r ocade-fusion-anythingllm-chatbot.zip ./${{ env.PLUGIN_DIR }}
+      
+      # Étape pour publier la release
+      - name: Publish release
+        uses: "ocade-graciet-system/action-releases@v1"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "${{ steps.increment.outputs.version }}"
+          prerelease: true
+          title: "${{ steps.increment.outputs.version }}"
+          files: |
+            ocade-fusion-anythingllm-chatbot.zip
+            ./${{ env.PLUGIN_DIR }}/metadata.json
