@@ -2044,3 +2044,11 @@
                 bottom var(--ofac-transition-slow),
                 border-radius var(--ofac-transition-slow);
 }
+
+#ofac-modal {
+  display: none;
+}
+
+#ofac-trigger[aria-expanded="true"] + #ofac-modal {
+  display: flex; 
+}
