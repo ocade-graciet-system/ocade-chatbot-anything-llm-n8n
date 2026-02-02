@@ -3,7 +3,7 @@
  * Plugin Name: Ocade Fusion AnythingLLM Chatbot
  * Plugin URI: https://ocadefusion.fr/plugins/anythingllm-chatbot
  * Description: Intégrez un chatbot intelligent propulsé par AnythingLLM à votre site WordPress. Conforme RGAA et RGPD.
- * Version: 1.0.3
+ * Version: 1.0.4
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * Author: Ocade Fusion
