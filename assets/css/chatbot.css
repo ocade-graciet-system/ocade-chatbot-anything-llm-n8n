@@ -2052,3 +2052,11 @@
 #ofac-trigger[aria-expanded="true"] + #ofac-modal {
   display: flex; 
 }
+
+
+#ofac-chat-title {
+	font-size: 1.4rem;
+}
+.ofac-consent-content {
+	max-width: 500px;
+}
