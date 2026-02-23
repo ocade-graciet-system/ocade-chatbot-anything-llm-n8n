@@ -425,6 +425,21 @@ class OFAC_Admin_Settings {
             $this->settings->set( $key, $value );
         }
 
+        // Purge caches after saving settings
+        if ( function_exists( 'w3tc_flush_all' ) ) {
+            w3tc_flush_all();
+        }
+        if ( function_exists( 'wp_cache_clear_cache' ) ) {
+            wp_cache_clear_cache();
+        }
+        if ( function_exists( 'rocket_clean_domain' ) ) {
+            rocket_clean_domain();
+        }
+        if ( function_exists( 'wpfc_clear_all_cache' ) ) {
+            wpfc_clear_all_cache();
+        }
+        wp_cache_flush();
+
         add_settings_error(
             'ofac_settings',
             'settings_updated',

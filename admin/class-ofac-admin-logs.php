@@ -177,7 +177,13 @@ class OFAC_Admin_Logs {
                                     <td>
                                         <?php if ( $conv->user_id ) : ?>
                                             <?php $user = get_userdata( $conv->user_id ); ?>
-                                            <?php echo $user ? esc_html( $user->display_name ) : esc_html__( 'Inconnu', 'anythingllm-chatbot' ); ?>
+                                            <?php if ( $user ) : ?>
+                                                <strong><?php echo esc_html( $user->display_name ); ?></strong>
+                                                <small>ID: <?php echo esc_html( $conv->user_id ); ?></small>
+                                                <small><a href="mailto:<?php echo esc_attr( $user->user_email ); ?>"><?php echo esc_html( $user->user_email ); ?></a></small>
+                                            <?php else : ?>
+                                                <span class="ofac-anonymous"><?php esc_html_e( 'Utilisateur supprimé', 'anythingllm-chatbot' ); ?> (ID: <?php echo esc_html( $conv->user_id ); ?>)</span>
+                                            <?php endif; ?>
                                         <?php else : ?>
                                             <span class="ofac-anonymous"><?php esc_html_e( 'Anonyme', 'anythingllm-chatbot' ); ?></span>
                                         <?php endif; ?>
@@ -311,7 +317,31 @@ class OFAC_Admin_Logs {
         $logs = OFAC_Logs::get_instance();
         $messages = $logs->get_messages( $conversation_id );
 
+        // Build user info header
+        global $wpdb;
+        $conversation = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}ofac_conversations WHERE id = %d",
+                $conversation_id
+            )
+        );
+
         $html = '';
+        if ( $conversation && $conversation->user_id ) {
+            $user = get_userdata( $conversation->user_id );
+            if ( $user ) {
+                $html .= '<div class="ofac-user-info-header">';
+                $html .= '<strong>' . esc_html( $user->display_name ) . '</strong>';
+                $html .= '<span>ID: ' . esc_html( $conversation->user_id ) . '</span>';
+                $html .= '<span>' . esc_html__( 'Email: ', 'anythingllm-chatbot' ) . '<a href="mailto:' . esc_attr( $user->user_email ) . '">' . esc_html( $user->user_email ) . '</a></span>';
+                $html .= '</div>';
+            }
+        } elseif ( $conversation && ! $conversation->user_id ) {
+            $html .= '<div class="ofac-user-info-header">';
+            $html .= '<strong>' . esc_html__( 'Visiteur anonyme', 'anythingllm-chatbot' ) . '</strong>';
+            $html .= '</div>';
+        }
+
         foreach ( $messages as $msg ) {
             $role_class = $msg->role === 'user' ? 'ofac-msg-user' : 'ofac-msg-bot';
             $role_label = $msg->role === 'user' 

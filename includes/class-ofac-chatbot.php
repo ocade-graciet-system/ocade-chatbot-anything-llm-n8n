@@ -78,6 +78,12 @@ class OFAC_Chatbot {
             return false;
         }
 
+        // Check login requirement
+        $require_login = $this->settings->get( 'ofac_require_login', false );
+        if ( $require_login && ! is_user_logged_in() ) {
+            return false;
+        }
+
         // Check role restrictions
         $allowed_roles = $this->settings->get( 'ofac_allowed_roles', array() );
         if ( ! empty( $allowed_roles ) ) {

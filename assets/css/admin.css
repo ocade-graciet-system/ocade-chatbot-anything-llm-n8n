@@ -1378,6 +1378,54 @@
     font-size: 12px;
 }
 
+/* Logs Table - User Info */
+.ofac-logs-table td small {
+    color: var(--ofac-admin-text-muted);
+    display: block;
+    line-height: 1.6;
+    font-size: 12px;
+}
+
+.ofac-logs-table td small a {
+    color: var(--ofac-admin-primary);
+    text-decoration: none;
+}
+
+.ofac-logs-table td small a:hover {
+    text-decoration: underline;
+}
+
+/* Modal - User Info Header */
+.ofac-user-info-header {
+    background: var(--ofac-admin-bg);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border-radius: var(--ofac-admin-radius);
+    border-left: 4px solid var(--ofac-admin-primary);
+}
+
+.ofac-user-info-header strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--ofac-admin-text);
+}
+
+.ofac-user-info-header span {
+    display: inline-block;
+    margin-right: 16px;
+    color: var(--ofac-admin-text-muted);
+    font-size: 13px;
+}
+
+.ofac-user-info-header a {
+    color: var(--ofac-admin-primary);
+    text-decoration: none;
+}
+
+.ofac-user-info-header a:hover {
+    text-decoration: underline;
+}
+
 /* ==========================================================================
    Responsive
    ========================================================================== */

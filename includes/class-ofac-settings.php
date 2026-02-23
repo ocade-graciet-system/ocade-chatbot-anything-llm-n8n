@@ -118,6 +118,12 @@ class OFAC_Settings {
                         'description' => __( 'Afficher le chatbot sur le site', 'anythingllm-chatbot' ),
                         'default'     => false,
                     ),
+                    'ofac_require_login' => array(
+                        'type'        => 'checkbox',
+                        'label'       => __( 'Connexion requise', 'anythingllm-chatbot' ),
+                        'description' => __( 'Afficher le chatbot uniquement aux utilisateurs connectés. Si des rôles sont sélectionnés ci-dessous, seuls ces rôles y auront accès.', 'anythingllm-chatbot' ),
+                        'default'     => false,
+                    ),
                     'ofac_position' => array(
                         'type'        => 'select',
                         'label'       => __( 'Position du bouton', 'anythingllm-chatbot' ),
@@ -403,6 +409,7 @@ class OFAC_Settings {
             'ofac_data_retention_days'  => 30,
             'ofac_privacy_policy_url'   => '',
             'ofac_show_skip_link'       => true,
+            'ofac_require_login'        => false,
             'ofac_allowed_roles'        => array(),
             'ofac_enable_logs'          => true,
             'ofac_enable_stats'         => true,

@@ -431,6 +431,7 @@ final class OFAC_Plugin {
             'ofac_data_retention_days'  => 30,
             'ofac_privacy_policy_url'   => '',
             'ofac_show_skip_link'       => true,
+            'ofac_require_login'        => false,
             'ofac_allowed_roles'        => array(),
             'ofac_enable_logs'          => true,
             'ofac_enable_stats'         => true,
