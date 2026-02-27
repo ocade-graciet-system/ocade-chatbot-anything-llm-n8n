@@ -1127,6 +1127,98 @@
 }
 
 /* ==========================================================================
+   Markdown Rendering
+   ========================================================================== */
+
+.ofac-message-bubble .ofac-md-paragraph {
+    margin: 0 0 0.4em 0;
+    line-height: 1.5;
+}
+
+.ofac-message-bubble .ofac-md-paragraph:last-child {
+    margin-bottom: 0;
+}
+
+.ofac-message-bubble .ofac-md-heading {
+    margin: 0.6em 0 0.3em 0;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.ofac-message-bubble .ofac-md-heading:first-child {
+    margin-top: 0;
+}
+
+.ofac-message-bubble h1.ofac-md-heading { font-size: 1.3em; }
+.ofac-message-bubble h2.ofac-md-heading { font-size: 1.2em; }
+.ofac-message-bubble h3.ofac-md-heading { font-size: 1.1em; }
+.ofac-message-bubble h4.ofac-md-heading,
+.ofac-message-bubble h5.ofac-md-heading,
+.ofac-message-bubble h6.ofac-md-heading { font-size: 1em; }
+
+.ofac-message-bubble .ofac-md-list {
+    margin: 0.3em 0;
+    padding-left: 1.4em;
+    line-height: 1.5;
+}
+
+.ofac-message-bubble .ofac-md-list li {
+    margin: 0.15em 0;
+}
+
+.ofac-message-bubble .ofac-md-list li::marker {
+    color: var(--ofac-text-secondary);
+}
+
+.ofac-message-bubble ol.ofac-md-list {
+    list-style-type: decimal;
+}
+
+.ofac-message-bubble ul.ofac-md-list {
+    list-style-type: disc;
+}
+
+.ofac-message-bubble .ofac-md-blockquote {
+    margin: 0.4em 0;
+    padding: 0.3em 0.8em;
+    border-left: 3px solid var(--ofac-primary);
+    background: var(--ofac-bg-secondary);
+    border-radius: 0 var(--ofac-radius-sm) var(--ofac-radius-sm) 0;
+    font-style: italic;
+    color: var(--ofac-text-secondary);
+}
+
+.ofac-message-bubble .ofac-md-hr {
+    border: none;
+    border-top: 1px solid var(--ofac-border);
+    margin: 0.6em 0;
+}
+
+.ofac-message-bubble strong {
+    font-weight: 600;
+}
+
+.ofac-message-bubble em {
+    font-style: italic;
+}
+
+.ofac-message-bubble del {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+/* User messages - simpler markdown */
+.ofac-message--user .ofac-message-bubble .ofac-md-blockquote {
+    border-left-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.1);
+    color: inherit;
+}
+
+.ofac-message--user .ofac-message-bubble .ofac-md-list li::marker {
+    color: inherit;
+}
+
+/* ==========================================================================
    Typing Indicator
    ========================================================================== */
 
@@ -1473,6 +1565,14 @@
 .ofac-consent--visible {
     opacity: 1;
     visibility: visible;
+}
+
+/* Hide action buttons during consent screen (keep only fullscreen + close) */
+.ofac-consent-active .ofac-btn-callback,
+.ofac-consent-active .ofac-btn-contact,
+.ofac-consent-active .ofac-btn-export,
+.ofac-consent-active .ofac-btn-reset {
+    display: none;
 }
 
 .ofac-consent__dialog {
@@ -2059,4 +2159,248 @@
 }
 .ofac-consent-content {
 	max-width: 500px;
+}
+
+/* ==============================
+   Support Overlays
+   ============================== */
+
+.ofac-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--ofac-bg);
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ofac-spacing-lg);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.ofac-overlay--visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.ofac-overlay-content {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.ofac-overlay-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--ofac-text);
+    margin: 0 0 var(--ofac-spacing-lg);
+}
+
+/* Contact info */
+.ofac-contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ofac-spacing-md);
+    margin-bottom: var(--ofac-spacing-lg);
+}
+
+.ofac-contact-item {
+    display: flex;
+    align-items: center;
+    gap: var(--ofac-spacing-sm);
+    padding: var(--ofac-spacing-md);
+    background: var(--ofac-bg-secondary);
+    border-radius: var(--ofac-radius-md);
+    justify-content: center;
+}
+
+.ofac-contact-item svg {
+    flex-shrink: 0;
+    color: var(--ofac-primary);
+}
+
+.ofac-contact-link {
+    color: var(--ofac-primary);
+    text-decoration: none;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.ofac-contact-link:hover {
+    text-decoration: underline;
+}
+
+/* Overlay buttons */
+.ofac-overlay-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ofac-spacing-sm) var(--ofac-spacing-lg);
+    border: 1px solid var(--ofac-border);
+    border-radius: var(--ofac-radius-md);
+    background: var(--ofac-bg);
+    color: var(--ofac-text);
+    font-size: var(--ofac-font-size-sm);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.ofac-overlay-close-btn:hover {
+    background: var(--ofac-bg-secondary);
+}
+
+.ofac-overlay-submit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ofac-spacing-sm) var(--ofac-spacing-lg);
+    border: none;
+    border-radius: var(--ofac-radius-md);
+    background: var(--ofac-primary);
+    color: var(--ofac-text-inverse);
+    font-size: var(--ofac-font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.ofac-overlay-submit-btn:hover {
+    background: var(--ofac-primary-hover);
+}
+
+.ofac-overlay-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Callback form */
+.ofac-callback-form {
+    text-align: left;
+}
+
+.ofac-form-group {
+    margin-bottom: var(--ofac-spacing-md);
+}
+
+.ofac-form-label {
+    display: block;
+    font-size: var(--ofac-font-size-sm);
+    font-weight: 500;
+    color: var(--ofac-text);
+    margin-bottom: var(--ofac-spacing-xs);
+}
+
+.ofac-form-input {
+    width: 100%;
+    padding: var(--ofac-spacing-sm);
+    border: 1px solid var(--ofac-border);
+    border-radius: var(--ofac-radius-md);
+    font-size: var(--ofac-font-size-sm);
+    font-family: inherit;
+    background: var(--ofac-bg);
+    color: var(--ofac-text);
+    box-sizing: border-box;
+    transition: border-color 0.15s ease;
+}
+
+.ofac-form-input:focus {
+    outline: none;
+    border-color: var(--ofac-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.ofac-form-textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.ofac-form-actions {
+    display: flex;
+    gap: var(--ofac-spacing-sm);
+    justify-content: flex-end;
+    margin-top: var(--ofac-spacing-md);
+}
+
+/* Callback spinner */
+.ofac-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: ofac-spin 0.6s linear infinite;
+    vertical-align: middle;
+}
+
+@keyframes ofac-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Callback form loading state */
+.ofac-callback-form.ofac-form--loading .ofac-form-group {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Callback error */
+.ofac-callback-error {
+    padding: var(--ofac-spacing-sm) var(--ofac-spacing-md);
+    margin: var(--ofac-spacing-sm) 0;
+    background: rgba(220, 38, 38, 0.1);
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    border-radius: var(--ofac-radius-md);
+    color: #dc2626;
+    font-size: var(--ofac-font-size-sm);
+    text-align: center;
+    animation: ofac-shake 0.4s ease;
+}
+
+@keyframes ofac-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+}
+
+/* Callback success */
+.ofac-callback-success {
+    padding: var(--ofac-spacing-lg);
+    text-align: center;
+    color: var(--ofac-success);
+    animation: ofac-fade-in 0.3s ease;
+}
+
+@keyframes ofac-fade-in {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.ofac-callback-success svg {
+    margin-bottom: var(--ofac-spacing-sm);
+}
+
+.ofac-callback-success p {
+    color: var(--ofac-text);
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Overlay focus styles */
+.ofac-overlay-close-btn:focus-visible,
+.ofac-overlay-submit-btn:focus-visible {
+    outline: 3px solid var(--ofac-primary);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.2);
+}
+
+.ofac-form-input:focus-visible {
+    outline: none;
+    border-color: var(--ofac-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }

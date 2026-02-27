@@ -35,7 +35,7 @@ class OFAC_Admin_GDPR {
      * Render GDPR page
      */
     public function render() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_gdpr' ) ) {
             return;
         }
 
@@ -230,7 +230,7 @@ class OFAC_Admin_GDPR {
     public function ajax_search_user() {
         check_ajax_referer( 'ofac_admin_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_gdpr' ) ) {
             wp_send_json_error( __( 'Permission refusée.', 'anythingllm-chatbot' ) );
         }
 
@@ -269,7 +269,7 @@ class OFAC_Admin_GDPR {
     public function ajax_export_data() {
         check_ajax_referer( 'ofac_admin_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_gdpr' ) ) {
             wp_send_json_error( __( 'Permission refusée.', 'anythingllm-chatbot' ) );
         }
 
@@ -294,7 +294,7 @@ class OFAC_Admin_GDPR {
     public function ajax_delete_data() {
         check_ajax_referer( 'ofac_admin_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_gdpr' ) ) {
             wp_send_json_error( __( 'Permission refusée.', 'anythingllm-chatbot' ) );
         }
 
@@ -321,7 +321,7 @@ class OFAC_Admin_GDPR {
     public function ajax_cleanup() {
         check_ajax_referer( 'ofac_admin_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_gdpr' ) ) {
             wp_send_json_error( __( 'Permission refusée.', 'anythingllm-chatbot' ) );
         }
 

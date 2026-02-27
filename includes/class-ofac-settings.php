@@ -179,8 +179,14 @@ class OFAC_Settings {
                     'ofac_primary_color' => array(
                         'type'        => 'color',
                         'label'       => __( 'Couleur principale', 'anythingllm-chatbot' ),
-                        'description' => __( 'Couleur principale du chatbot', 'anythingllm-chatbot' ),
+                        'description' => __( 'Couleur principale du chatbot (fond header, bulles utilisateur, boutons)', 'anythingllm-chatbot' ),
                         'default'     => '#0073aa',
+                    ),
+                    'ofac_text_color' => array(
+                        'type'        => 'color',
+                        'label'       => __( 'Couleur du texte sur fond coloré', 'anythingllm-chatbot' ),
+                        'description' => __( 'Couleur du texte dans le header, les bulles utilisateur et les boutons. Blanc recommandé pour les couleurs foncées, noir pour les couleurs claires.', 'anythingllm-chatbot' ),
+                        'default'     => '#ffffff',
                     ),
                     'ofac_bot_avatar' => array(
                         'type'        => 'image',
@@ -232,6 +238,12 @@ class OFAC_Settings {
                         'min'         => 100,
                         'max'         => 10000,
                     ),
+                    'ofac_welcome_suggestions' => array(
+                        'type'        => 'textarea',
+                        'label'       => __( 'Questions suggérées à l\'ouverture', 'anythingllm-chatbot' ),
+                        'description' => __( 'Une suggestion par ligne. Si vide, les suggestions du workspace AnythingLLM seront utilisées.', 'anythingllm-chatbot' ),
+                        'default'     => '',
+                    ),
                 ),
             ),
             // File Upload Settings
@@ -257,6 +269,59 @@ class OFAC_Settings {
                         'label'       => __( 'Types autorisés', 'anythingllm-chatbot' ),
                         'description' => __( 'Extensions autorisées, séparées par des virgules', 'anythingllm-chatbot' ),
                         'default'     => 'jpg,jpeg,png,gif,pdf,doc,docx,txt',
+                    ),
+                ),
+            ),
+            // Support Settings
+            'support' => array(
+                'title'  => __( 'Support client', 'anythingllm-chatbot' ),
+                'fields' => array(
+                    'ofac_enable_contact_btn' => array(
+                        'type'        => 'checkbox',
+                        'label'       => __( 'Activer le bouton Contact', 'anythingllm-chatbot' ),
+                        'description' => __( 'Affiche un bouton dans l\'en-tête du chatbot pour voir les coordonnées du support', 'anythingllm-chatbot' ),
+                        'default'     => false,
+                    ),
+                    'ofac_contact_btn_label' => array(
+                        'type'        => 'text',
+                        'label'       => __( 'Libellé du bouton Contact', 'anythingllm-chatbot' ),
+                        'description' => __( 'Texte affiché au survol du bouton', 'anythingllm-chatbot' ),
+                        'default'     => __( 'Contacter le support', 'anythingllm-chatbot' ),
+                    ),
+                    'ofac_contact_email' => array(
+                        'type'        => 'email',
+                        'label'       => __( 'Email du support (affiché au client)', 'anythingllm-chatbot' ),
+                        'description' => __( 'Adresse email affichée au client quand il clique sur le bouton contact', 'anythingllm-chatbot' ),
+                        'default'     => '',
+                    ),
+                    'ofac_contact_phone' => array(
+                        'type'        => 'text',
+                        'label'       => __( 'Téléphone du support', 'anythingllm-chatbot' ),
+                        'description' => __( 'Numéro de téléphone affiché au client', 'anythingllm-chatbot' ),
+                        'default'     => '',
+                    ),
+                    'ofac_enable_callback_btn' => array(
+                        'type'        => 'checkbox',
+                        'label'       => __( 'Activer le bouton Être recontacté', 'anythingllm-chatbot' ),
+                        'description' => __( 'Permet au client de demander à être recontacté par le support', 'anythingllm-chatbot' ),
+                        'default'     => false,
+                    ),
+                    'ofac_callback_btn_label' => array(
+                        'type'        => 'text',
+                        'label'       => __( 'Libellé du bouton Être recontacté', 'anythingllm-chatbot' ),
+                        'default'     => __( 'Être recontacté', 'anythingllm-chatbot' ),
+                    ),
+                    'ofac_support_email' => array(
+                        'type'        => 'email',
+                        'label'       => __( 'Email de réception des demandes', 'anythingllm-chatbot' ),
+                        'description' => __( 'Adresse email qui recevra les demandes de rappel avec le résumé de conversation', 'anythingllm-chatbot' ),
+                        'default'     => '',
+                    ),
+                    'ofac_rag_draft_prompt' => array(
+                        'type'        => 'textarea',
+                        'label'       => __( 'Prompt de génération du brouillon', 'anythingllm-chatbot' ),
+                        'description' => __( 'Prompt envoyé à AnythingLLM pour générer le brouillon de réponse email. Utilisez {message} pour la demande de l\'utilisateur et {conversation} pour l\'historique.', 'anythingllm-chatbot' ),
+                        'default'     => "Tu es un assistant de support client. Un utilisateur a demandé à être recontacté par notre équipe.\n\nVoici sa demande principale :\n{message}\n\nVoici l'historique de la conversation avec notre assistant IA pour contexte :\n{conversation}\n\nRédige un email de réponse professionnel et courtois que l'opérateur du support pourra envoyer directement au client.\n\nRègles de rédaction :\n- Texte brut uniquement, AUCUN formatage Markdown (pas de **, pas de #, pas de -, pas de ```).\n- Commence directement par \"Objet :\" suivi du sujet de l'email, puis saute une ligne.\n- Puis le corps de l'email : salutation, contenu, formule de politesse.\n- Remercie le client pour sa demande.\n- Réponds précisément à la demande exprimée.\n- Propose une suite concrète (rendez-vous, appel, informations complémentaires).\n- Reste concis, professionnel et prêt à être envoyé tel quel.",
                     ),
                 ),
             ),
@@ -368,6 +433,34 @@ class OFAC_Settings {
                     ),
                 ),
             ),
+            // Permissions Settings
+            'permissions' => array(
+                'title'       => __( 'Permissions', 'anythingllm-chatbot' ),
+                'description' => __( 'Configurez quels rôles WordPress ont accès aux différents onglets du plugin. L\'onglet Réglages et RGPD restent réservés aux administrateurs.', 'anythingllm-chatbot' ),
+                'fields'      => array(
+                    'ofac_logs_roles' => array(
+                        'type'        => 'multiselect',
+                        'label'       => __( 'Accès aux Journaux', 'anythingllm-chatbot' ),
+                        'description' => __( 'Rôles ayant accès à l\'onglet Journaux (conversations, réponses support)', 'anythingllm-chatbot' ),
+                        'default'     => array( 'administrator', 'support_chatbot' ),
+                        'options'     => 'wp_roles',
+                    ),
+                    'ofac_callbacks_roles' => array(
+                        'type'        => 'multiselect',
+                        'label'       => __( 'Accès aux Demandes', 'anythingllm-chatbot' ),
+                        'description' => __( 'Rôles ayant accès à l\'onglet Demandes de rappel', 'anythingllm-chatbot' ),
+                        'default'     => array( 'administrator', 'support_chatbot' ),
+                        'options'     => 'wp_roles',
+                    ),
+                    'ofac_stats_roles' => array(
+                        'type'        => 'multiselect',
+                        'label'       => __( 'Accès aux Statistiques', 'anythingllm-chatbot' ),
+                        'description' => __( 'Rôles ayant accès à l\'onglet Statistiques', 'anythingllm-chatbot' ),
+                        'default'     => array( 'administrator', 'support_chatbot' ),
+                        'options'     => 'wp_roles',
+                    ),
+                ),
+            ),
         );
 
         /**
@@ -395,6 +488,7 @@ class OFAC_Settings {
             'ofac_height_desktop'       => 600,
             'ofac_theme_mode'           => 'auto',
             'ofac_primary_color'        => '#0073aa',
+            'ofac_text_color'           => '#ffffff',
             'ofac_bot_avatar'           => '',
             'ofac_user_avatar'          => '',
             'ofac_bot_name'             => 'Service Client',
@@ -415,8 +509,20 @@ class OFAC_Settings {
             'ofac_enable_stats'         => true,
             'ofac_enable_streaming'     => true,
             'ofac_quick_replies'        => '',
+            'ofac_welcome_suggestions'  => '',
+            'ofac_enable_contact_btn'   => false,
+            'ofac_contact_btn_label'    => 'Contacter le support',
+            'ofac_contact_email'        => '',
+            'ofac_contact_phone'        => '',
+            'ofac_enable_callback_btn'  => false,
+            'ofac_callback_btn_label'   => 'Être recontacté',
+            'ofac_support_email'        => '',
+            'ofac_rag_draft_prompt'     => "Tu es un assistant de support client. Un utilisateur a demandé à être recontacté par notre équipe.\n\nVoici sa demande principale :\n{message}\n\nVoici l'historique de la conversation avec notre assistant IA pour contexte :\n{conversation}\n\nRédige un email de réponse professionnel et courtois que l'opérateur du support pourra envoyer directement au client.\n\nRègles de rédaction :\n- Texte brut uniquement, AUCUN formatage Markdown (pas de **, pas de #, pas de -, pas de ```).\n- Commence directement par \"Objet :\" suivi du sujet de l'email, puis saute une ligne.\n- Puis le corps de l'email : salutation, contenu, formule de politesse.\n- Remercie le client pour sa demande.\n- Réponds précisément à la demande exprimée.\n- Propose une suite concrète (rendez-vous, appel, informations complémentaires).\n- Reste concis, professionnel et prêt à être envoyé tel quel.",
             'ofac_honeypot_enabled'     => true,
             'ofac_require_consent'      => true,
+            'ofac_logs_roles'           => array( 'administrator', 'support_chatbot' ),
+            'ofac_callbacks_roles'      => array( 'administrator', 'support_chatbot' ),
+            'ofac_stats_roles'          => array( 'administrator', 'support_chatbot' ),
         );
 
         foreach ( $setting_keys as $key => $default ) {
@@ -608,6 +714,7 @@ class OFAC_Settings {
             'ofac_height_desktop',
             'ofac_theme_mode',
             'ofac_primary_color',
+            'ofac_text_color',
             'ofac_bot_avatar',
             'ofac_user_avatar',
             'ofac_bot_name',
@@ -623,6 +730,13 @@ class OFAC_Settings {
             'ofac_show_skip_link',
             'ofac_skip_link_text',
             'ofac_require_consent',
+            'ofac_welcome_suggestions',
+            'ofac_enable_contact_btn',
+            'ofac_contact_btn_label',
+            'ofac_contact_email',
+            'ofac_contact_phone',
+            'ofac_enable_callback_btn',
+            'ofac_callback_btn_label',
         );
 
         $settings = array();

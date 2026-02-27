@@ -43,7 +43,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     <!-- Chat Window -->
     <div id="ofac-modal" 
-         class="ofac-chat-window ofac-modal <?php echo $inline ? 'ofac-visible ofac-modal--open' : ''; ?> ofac-modal--<?php echo esc_attr( $position ); ?>"
+         class="ofac-chat-window ofac-modal <?php echo $inline ? 'ofac-visible ofac-modal--open' : ''; ?> <?php echo ! $has_consent ? 'ofac-consent-active' : ''; ?> ofac-modal--<?php echo esc_attr( $position ); ?>"
          role="dialog"
          aria-modal="true"
          aria-labelledby="ofac-chat-title"
@@ -81,7 +81,29 @@ if ( ! defined( 'ABSPATH' ) ) {
                 </div>
             </div>
             <div class="ofac-header-actions">
-                <button type="button" 
+                <?php if ( $enable_callback_btn ) : ?>
+                <button type="button"
+                        id="ofac-callback-btn"
+                        class="ofac-header-btn ofac-btn-callback"
+                        aria-label="<?php echo esc_attr( $callback_btn_label ); ?>"
+                        title="<?php echo esc_attr( $callback_btn_label ); ?>">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+                        <path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57a1.02 1.02 0 00-1.02.24l-2.2 2.2a15.045 15.045 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1A11.36 11.36 0 018.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.87 0 7 3.13 7 7zm-4 0h2c0-2.76-2.24-5-5-5v2c1.66 0 3 1.34 3 3z"/>
+                    </svg>
+                </button>
+                <?php endif; ?>
+                <?php if ( $enable_contact_btn ) : ?>
+                <button type="button"
+                        id="ofac-contact-support"
+                        class="ofac-header-btn ofac-btn-contact"
+                        aria-label="<?php echo esc_attr( $contact_btn_label ); ?>"
+                        title="<?php echo esc_attr( $contact_btn_label ); ?>">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+                        <path d="M11.5 2C6.81 2 3 5.81 3 10.5S6.81 19 11.5 19h.5v3c4.86-2.34 8-7 8-11.5C20 5.81 16.19 2 11.5 2zm1 14.5h-2v-2h2v2zm0-3.5h-2c0-3.25 3-3 3-5 0-1.1-.9-2-2-2s-2 .9-2 2h-2c0-2.21 1.79-4 4-4s4 1.79 4 4c0 2.5-3 2.75-3 5z"/>
+                    </svg>
+                </button>
+                <?php endif; ?>
+                <button type="button"
                         id="ofac-export"
                         class="ofac-header-btn ofac-btn-export"
                         aria-label="<?php echo esc_attr( $accessibility->get_label( 'export_chat' ) ); ?>"
@@ -167,8 +189,106 @@ if ( ! defined( 'ABSPATH' ) ) {
             </div>
         </div>
 
+        <!-- Contact Support Overlay -->
+        <?php if ( $enable_contact_btn ) : ?>
+        <div id="ofac-contact-overlay" class="ofac-overlay" aria-hidden="true" role="dialog" aria-labelledby="ofac-contact-title">
+            <div class="ofac-overlay-content">
+                <h3 id="ofac-contact-title" class="ofac-overlay-title">
+                    <?php echo esc_html( $contact_btn_label ); ?>
+                </h3>
+                <div class="ofac-contact-info">
+                    <?php if ( ! empty( $contact_email ) ) : ?>
+                    <div class="ofac-contact-item">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                        </svg>
+                        <a href="mailto:<?php echo esc_attr( $contact_email ); ?>" class="ofac-contact-link">
+                            <?php echo esc_html( $contact_email ); ?>
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ( ! empty( $contact_phone ) ) : ?>
+                    <div class="ofac-contact-item">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                        </svg>
+                        <a href="tel:<?php echo esc_attr( preg_replace( '/[^0-9+]/', '', $contact_phone ) ); ?>" class="ofac-contact-link">
+                            <?php echo esc_html( $contact_phone ); ?>
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <button type="button" id="ofac-contact-close" class="ofac-overlay-close-btn">
+                    <?php esc_html_e( 'Fermer', 'anythingllm-chatbot' ); ?>
+                </button>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Callback Request Overlay -->
+        <?php if ( $enable_callback_btn ) : ?>
+        <div id="ofac-callback-overlay" class="ofac-overlay" aria-hidden="true" role="dialog" aria-labelledby="ofac-callback-title">
+            <div class="ofac-overlay-content">
+                <h3 id="ofac-callback-title" class="ofac-overlay-title">
+                    <?php echo esc_html( $callback_btn_label ); ?>
+                </h3>
+                <form id="ofac-callback-form" class="ofac-callback-form">
+                    <div class="ofac-form-group">
+                        <label for="ofac-callback-email" class="ofac-form-label">
+                            <?php esc_html_e( 'Email', 'anythingllm-chatbot' ); ?> <span aria-hidden="true">*</span>
+                        </label>
+                        <input type="email"
+                               id="ofac-callback-email"
+                               name="callback_email"
+                               class="ofac-form-input"
+                               required
+                               aria-required="true"
+                               placeholder="votre@email.com">
+                    </div>
+                    <div class="ofac-form-group">
+                        <label for="ofac-callback-phone" class="ofac-form-label">
+                            <?php esc_html_e( 'Téléphone (optionnel)', 'anythingllm-chatbot' ); ?>
+                        </label>
+                        <input type="tel"
+                               id="ofac-callback-phone"
+                               name="callback_phone"
+                               class="ofac-form-input"
+                               placeholder="06 12 34 56 78">
+                    </div>
+                    <div class="ofac-form-group">
+                        <label for="ofac-callback-message" class="ofac-form-label">
+                            <?php esc_html_e( 'Message', 'anythingllm-chatbot' ); ?> <span aria-hidden="true">*</span>
+                        </label>
+                        <textarea id="ofac-callback-message"
+                                  name="callback_message"
+                                  class="ofac-form-input ofac-form-textarea"
+                                  rows="3"
+                                  required
+                                  aria-required="true"
+                                  placeholder="<?php esc_attr_e( 'Décrivez votre demande ou question...', 'anythingllm-chatbot' ); ?>"></textarea>
+                    </div>
+                    <div class="ofac-form-actions">
+                        <button type="submit" class="ofac-overlay-submit-btn" id="ofac-callback-submit">
+                            <?php esc_html_e( 'Envoyer ma demande', 'anythingllm-chatbot' ); ?>
+                        </button>
+                        <button type="button" class="ofac-overlay-close-btn" id="ofac-callback-cancel">
+                            <?php esc_html_e( 'Annuler', 'anythingllm-chatbot' ); ?>
+                        </button>
+                    </div>
+                </form>
+                <div id="ofac-callback-error" class="ofac-callback-error" style="display:none;" role="alert" aria-live="assertive"></div>
+                <div id="ofac-callback-success" class="ofac-callback-success" style="display:none;">
+                    <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    <p><?php esc_html_e( 'Votre demande a été envoyée ! Nous vous recontacterons rapidement.', 'anythingllm-chatbot' ); ?></p>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Messages Container -->
-        <div id="ofac-messages" 
+        <div id="ofac-messages"
              class="ofac-messages" 
              role="log" 
              aria-live="polite"

@@ -1430,6 +1430,156 @@
    Responsive
    ========================================================================== */
 
+/* ==========================================================================
+   Reply Section (Logs Modal)
+   ========================================================================== */
+
+.ofac-reply-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid var(--ofac-admin-primary);
+    overflow: hidden;
+}
+
+.ofac-reply-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ofac-reply-header h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ofac-admin-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ofac-reply-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ofac-reply-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ofac-reply-field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ofac-admin-text);
+}
+
+.ofac-reply-field input[type="email"],
+.ofac-reply-field input[type="text"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--ofac-admin-border);
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--ofac-admin-text);
+    box-sizing: border-box;
+}
+
+.ofac-reply-field input[readonly] {
+    background: var(--ofac-admin-bg);
+    color: var(--ofac-admin-text-muted);
+}
+
+.ofac-reply-field input:focus,
+.ofac-reply-field textarea:focus {
+    outline: none;
+    border-color: var(--ofac-admin-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.ofac-reply-field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--ofac-admin-border);
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ofac-admin-text);
+    resize: vertical;
+    min-height: 150px;
+    box-sizing: border-box;
+}
+
+.ofac-reply-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ofac-reply-actions .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ==========================================================================
+   Callbacks Page - Demandes de rappel
+   ========================================================================== */
+
+.ofac-callbacks-table .column-status { width: 90px; }
+.ofac-callbacks-table .column-email { width: 180px; }
+.ofac-callbacks-table .column-phone { width: 120px; }
+.ofac-callbacks-table .column-conversation { width: 90px; text-align: center; }
+.ofac-callbacks-table .column-date { width: 130px; }
+.ofac-callbacks-table .column-actions { width: 170px; white-space: nowrap; }
+
+.ofac-cb-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.ofac-cb-badge--pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.ofac-cb-badge--replied {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.ofac-cb-badge--closed {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.ofac-callbacks-table .column-actions .button-small {
+    padding: 0 6px;
+    min-height: 26px;
+    line-height: 24px;
+}
+
+.ofac-callbacks-table .ofac-muted {
+    color: #94a3b8;
+}
+
+.ofac-callbacks-table .column-date small {
+    color: #64748b;
+    display: block;
+}
+
+.ofac-view-conversation {
+    font-weight: 500;
+}
+
 @media (max-width: 782px) {
     .ofac-admin-wrap {
         margin-right: 10px;
@@ -1492,4 +1642,89 @@
     .ofac-msg-bot {
         margin-right: 0;
     }
+}
+
+/* ==========================================================================
+   Reply History
+   ========================================================================== */
+
+.ofac-reply-history {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid var(--ofac-admin-border);
+}
+
+.ofac-reply-history-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ofac-admin-text);
+    margin: 0 0 15px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ofac-reply-item {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: var(--ofac-admin-radius);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+}
+
+.ofac-reply-item-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.ofac-reply-item-header strong {
+    color: var(--ofac-admin-primary);
+}
+
+.ofac-reply-item-date {
+    color: var(--ofac-admin-text-muted);
+    font-size: 12px;
+}
+
+.ofac-reply-item-subject {
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: var(--ofac-admin-text);
+    padding-bottom: 8px;
+    border-bottom: 1px solid #bae6fd;
+}
+
+.ofac-reply-item-body {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ofac-admin-text);
+    white-space: pre-wrap;
+}
+
+/* Badge info variant */
+.ofac-badge--info {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Replies column in callbacks table */
+.column-replies {
+    width: 80px;
+    text-align: center;
+}
+
+.ofac-view-replies {
+    cursor: pointer;
+}
+
+/* Replies modal */
+#ofac-replies-modal .ofac-modal-content {
+    max-width: 700px;
 }

@@ -52,6 +52,13 @@ class OFAC_Admin {
     private $gdpr_page;
 
     /**
+     * Callbacks page
+     *
+     * @var OFAC_Admin_Callbacks
+     */
+    private $callbacks_page;
+
+    /**
      * Get instance
      *
      * @return OFAC_Admin
@@ -79,11 +86,13 @@ class OFAC_Admin {
         require_once OFAC_PLUGIN_DIR . 'admin/class-ofac-admin-logs.php';
         require_once OFAC_PLUGIN_DIR . 'admin/class-ofac-admin-stats.php';
         require_once OFAC_PLUGIN_DIR . 'admin/class-ofac-admin-gdpr.php';
+        require_once OFAC_PLUGIN_DIR . 'admin/class-ofac-admin-callbacks.php';
 
         $this->settings_page = new OFAC_Admin_Settings();
         $this->logs_page = new OFAC_Admin_Logs();
         $this->stats_page = new OFAC_Admin_Stats();
         $this->gdpr_page = new OFAC_Admin_GDPR();
+        $this->callbacks_page = new OFAC_Admin_Callbacks();
     }
 
     /**
@@ -101,56 +110,97 @@ class OFAC_Admin {
      * Add admin menu
      */
     public function add_admin_menu() {
-        // Main menu
+        // Determine the default page for the current user
+        $default_page = OFAC_Capabilities::get_default_page();
+        $default_callback = $this->get_page_callback( $default_page );
+
+        // Main menu — visible to anyone with at least one OFAC capability
         add_menu_page(
             __( 'AnythingLLM Chatbot', 'anythingllm-chatbot' ),
             __( 'AnythingLLM', 'anythingllm-chatbot' ),
-            'manage_options',
-            'ofac-settings',
-            array( $this->settings_page, 'render' ),
+            OFAC_Capabilities::get_menu_capability(),
+            $default_page,
+            $default_callback,
             'dashicons-format-chat',
             80
         );
 
-        // Settings submenu
-        add_submenu_page(
-            'ofac-settings',
-            __( 'Réglages', 'anythingllm-chatbot' ),
-            __( 'Réglages', 'anythingllm-chatbot' ),
-            'manage_options',
-            'ofac-settings',
-            array( $this->settings_page, 'render' )
-        );
+        // Settings submenu (admin only)
+        if ( current_user_can( 'manage_ofac_settings' ) ) {
+            add_submenu_page(
+                $default_page,
+                __( 'Réglages', 'anythingllm-chatbot' ),
+                __( 'Réglages', 'anythingllm-chatbot' ),
+                'manage_ofac_settings',
+                'ofac-settings',
+                array( $this->settings_page, 'render' )
+            );
+        }
 
         // Logs submenu
         add_submenu_page(
-            'ofac-settings',
-            __( 'Logs', 'anythingllm-chatbot' ),
-            __( 'Logs', 'anythingllm-chatbot' ),
-            'manage_options',
+            $default_page,
+            __( 'Journaux', 'anythingllm-chatbot' ),
+            __( 'Journaux', 'anythingllm-chatbot' ),
+            'manage_ofac_logs',
             'ofac-logs',
             array( $this->logs_page, 'render' )
         );
 
         // Stats submenu
         add_submenu_page(
-            'ofac-settings',
+            $default_page,
             __( 'Statistiques', 'anythingllm-chatbot' ),
             __( 'Statistiques', 'anythingllm-chatbot' ),
-            'manage_options',
+            'manage_ofac_stats',
             'ofac-stats',
             array( $this->stats_page, 'render' )
         );
 
-        // GDPR submenu
+        // Callbacks submenu
+        $pending_count = $this->get_pending_callbacks_count();
+        $callbacks_label = __( 'Demandes', 'anythingllm-chatbot' );
+        if ( $pending_count > 0 ) {
+            $callbacks_label .= ' <span class="awaiting-mod count-' . $pending_count . '"><span class="pending-count">' . $pending_count . '</span></span>';
+        }
         add_submenu_page(
-            'ofac-settings',
-            __( 'RGPD', 'anythingllm-chatbot' ),
-            __( 'RGPD', 'anythingllm-chatbot' ),
-            'manage_options',
-            'ofac-gdpr',
-            array( $this->gdpr_page, 'render' )
+            $default_page,
+            __( 'Demandes de rappel', 'anythingllm-chatbot' ),
+            $callbacks_label,
+            'manage_ofac_callbacks',
+            'ofac-callbacks',
+            array( $this->callbacks_page, 'render' )
         );
+
+        // GDPR submenu (admin only)
+        if ( current_user_can( 'manage_ofac_gdpr' ) ) {
+            add_submenu_page(
+                $default_page,
+                __( 'RGPD', 'anythingllm-chatbot' ),
+                __( 'RGPD', 'anythingllm-chatbot' ),
+                'manage_ofac_gdpr',
+                'ofac-gdpr',
+                array( $this->gdpr_page, 'render' )
+            );
+        }
+    }
+
+    /**
+     * Get page render callback by slug
+     *
+     * @param string $slug Page slug.
+     * @return callable
+     */
+    private function get_page_callback( $slug ) {
+        $map = array(
+            'ofac-settings'  => array( $this->settings_page, 'render' ),
+            'ofac-logs'      => array( $this->logs_page, 'render' ),
+            'ofac-stats'     => array( $this->stats_page, 'render' ),
+            'ofac-callbacks' => array( $this->callbacks_page, 'render' ),
+            'ofac-gdpr'      => array( $this->gdpr_page, 'render' ),
+        );
+
+        return isset( $map[ $slug ] ) ? $map[ $slug ] : array( $this->settings_page, 'render' );
     }
 
     /**
@@ -236,20 +286,7 @@ class OFAC_Admin {
      * @return bool
      */
     private function is_plugin_page( $hook ) {
-        $plugin_pages = array(
-            'toplevel_page_ofac-settings',
-            'anythingllm_page_ofac-logs',
-            'anythingllm_page_ofac-stats',
-            'anythingllm_page_ofac-gdpr',
-        );
-
-        foreach ( $plugin_pages as $page ) {
-            if ( strpos( $hook, 'ofac-' ) !== false ) {
-                return true;
-            }
-        }
-
-        return false;
+        return strpos( $hook, 'ofac-' ) !== false;
     }
 
     /**
@@ -317,5 +354,31 @@ class OFAC_Admin {
      */
     public function get_gdpr_page() {
         return $this->gdpr_page;
+    }
+
+    /**
+     * Get callbacks page instance
+     *
+     * @return OFAC_Admin_Callbacks
+     */
+    public function get_callbacks_page() {
+        return $this->callbacks_page;
+    }
+
+    /**
+     * Get pending callbacks count for menu badge
+     *
+     * @return int
+     */
+    private function get_pending_callbacks_count() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'ofac_callback_requests';
+
+        // Verifier que la table existe
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+            return 0;
+        }
+
+        return (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table WHERE status = 'pending'" );
     }
 }

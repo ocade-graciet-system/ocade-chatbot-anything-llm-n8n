@@ -41,7 +41,7 @@ class OFAC_Admin_Logs {
      * Render logs page
      */
     public function render() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_logs' ) ) {
             return;
         }
 
@@ -304,7 +304,7 @@ class OFAC_Admin_Logs {
     public function ajax_get_messages() {
         check_ajax_referer( 'ofac_admin_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_logs' ) ) {
             wp_send_json_error( __( 'Permission refusée.', 'anythingllm-chatbot' ) );
         }
 
@@ -363,6 +363,122 @@ class OFAC_Admin_Logs {
             );
         }
 
+        // Check for callback request linked to this conversation
+        $callback_request = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}ofac_callback_requests WHERE conversation_id = %d ORDER BY id DESC LIMIT 1",
+                $conversation_id
+            )
+        );
+
+        // Determine reply email: callback request email > logged-in user email
+        $reply_email = '';
+        $reply_source = '';
+        if ( $callback_request ) {
+            $reply_email = $callback_request->email;
+            $reply_source = 'callback';
+        } elseif ( $conversation && $conversation->user_id ) {
+            $user = get_userdata( $conversation->user_id );
+            if ( $user ) {
+                $reply_email = $user->user_email;
+                $reply_source = 'user';
+            }
+        }
+
+        // Add reply form if we have an email
+        if ( $reply_email ) {
+            $status_badge = '';
+            if ( $callback_request ) {
+                $status_label = $callback_request->status === 'replied'
+                    ? __( 'Répondu', 'anythingllm-chatbot' )
+                    : __( 'En attente', 'anythingllm-chatbot' );
+                $status_class = $callback_request->status === 'replied' ? 'ofac-badge--success' : 'ofac-badge--warning';
+                $status_badge = '<span class="ofac-badge ' . esc_attr( $status_class ) . '">' . esc_html( $status_label ) . '</span>';
+            }
+
+            $default_subject = sprintf(
+                __( 'Suite à votre échange avec notre assistant - %s', 'anythingllm-chatbot' ),
+                get_bloginfo( 'name' )
+            );
+
+            $html .= '<div class="ofac-reply-section" data-conversation-id="' . esc_attr( $conversation_id ) . '" data-request-id="' . esc_attr( $callback_request ? $callback_request->id : 0 ) . '">';
+            $html .= '<div class="ofac-reply-header">';
+            $html .= '<h3>' . esc_html__( 'Répondre au client', 'anythingllm-chatbot' ) . ' ' . $status_badge . '</h3>';
+            $html .= '<button type="button" class="button ofac-generate-draft" data-id="' . esc_attr( $conversation_id ) . '">';
+            $html .= '<span class="dashicons dashicons-admin-comments" style="vertical-align: middle; margin-right: 4px;"></span>';
+            $html .= esc_html__( 'Générer brouillon IA', 'anythingllm-chatbot' );
+            $html .= '</button>';
+            $html .= '</div>';
+
+            $html .= '<div class="ofac-reply-form">';
+            $html .= '<div class="ofac-reply-field">';
+            $html .= '<label>' . esc_html__( 'Destinataire', 'anythingllm-chatbot' ) . '</label>';
+            $html .= '<input type="email" class="ofac-reply-to" value="' . esc_attr( $reply_email ) . '" readonly>';
+            $html .= '</div>';
+
+            $html .= '<div class="ofac-reply-field">';
+            $html .= '<label>' . esc_html__( 'Sujet', 'anythingllm-chatbot' ) . '</label>';
+            $html .= '<input type="text" class="ofac-reply-subject" value="' . esc_attr( $default_subject ) . '">';
+            $html .= '</div>';
+
+            $html .= '<div class="ofac-reply-field">';
+            $html .= '<label>' . esc_html__( 'Message', 'anythingllm-chatbot' ) . '</label>';
+            $html .= '<textarea class="ofac-reply-body" rows="8" placeholder="' . esc_attr__( 'Cliquez sur "Générer brouillon IA" ou rédigez votre réponse...', 'anythingllm-chatbot' ) . '"></textarea>';
+            $html .= '</div>';
+
+            $html .= '<div class="ofac-reply-actions">';
+            $html .= '<button type="button" class="button button-primary ofac-send-reply">';
+            $html .= '<span class="dashicons dashicons-email" style="vertical-align: middle; margin-right: 4px;"></span>';
+            $html .= esc_html__( 'Envoyer l\'email', 'anythingllm-chatbot' );
+            $html .= '</button>';
+            $html .= '<button type="button" class="button ofac-generate-draft" data-id="' . esc_attr( $conversation_id ) . '">';
+            $html .= esc_html__( 'Régénérer le brouillon', 'anythingllm-chatbot' );
+            $html .= '</button>';
+            $html .= '</div>';
+            $html .= '</div>'; // .ofac-reply-form
+            $html .= '</div>'; // .ofac-reply-section
+        }
+
+        // Display reply history if a callback request exists
+        if ( $callback_request ) {
+            $replies = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT * FROM {$wpdb->prefix}ofac_ticket_replies WHERE request_id = %d ORDER BY created_at DESC",
+                    $callback_request->id
+                )
+            );
+
+            if ( ! empty( $replies ) ) {
+                $html .= '<div class="ofac-reply-history">';
+                $html .= '<h3 class="ofac-reply-history-title">';
+                $html .= '<span class="dashicons dashicons-email-alt" style="vertical-align: middle; margin-right: 6px;"></span>';
+                $html .= esc_html__( 'Historique des réponses envoyées', 'anythingllm-chatbot' );
+                $html .= ' <span class="ofac-badge ofac-badge--info">' . count( $replies ) . '</span>';
+                $html .= '</h3>';
+
+                foreach ( $replies as $reply ) {
+                    $reply_user = get_userdata( $reply->user_id );
+                    $author_name = $reply_user ? $reply_user->display_name : __( 'Utilisateur supprimé', 'anythingllm-chatbot' );
+
+                    $html .= '<div class="ofac-reply-item">';
+                    $html .= '<div class="ofac-reply-item-header">';
+                    $html .= '<strong>' . esc_html( $author_name ) . '</strong>';
+                    $html .= '<span class="ofac-reply-item-date">' . esc_html( wp_date( 'd/m/Y H:i', strtotime( $reply->created_at ) ) ) . '</span>';
+                    if ( $reply->email_sent ) {
+                        $html .= '<span class="ofac-badge ofac-badge--success">' . esc_html__( 'Envoyé', 'anythingllm-chatbot' ) . '</span>';
+                    }
+                    $html .= '</div>';
+                    $html .= '<div class="ofac-reply-item-subject">';
+                    $html .= '<strong>' . esc_html__( 'Sujet', 'anythingllm-chatbot' ) . ' :</strong> ' . esc_html( $reply->subject );
+                    $html .= '</div>';
+                    $html .= '<div class="ofac-reply-item-body">' . wp_kses_post( nl2br( $reply->body ) ) . '</div>';
+                    $html .= '</div>';
+                }
+
+                $html .= '</div>'; // .ofac-reply-history
+            }
+        }
+
         wp_send_json_success( array( 'html' => $html ) );
     }
 
@@ -372,7 +488,7 @@ class OFAC_Admin_Logs {
     public function ajax_delete_conversation() {
         check_ajax_referer( 'ofac_admin_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_logs' ) ) {
             wp_send_json_error( __( 'Permission refusée.', 'anythingllm-chatbot' ) );
         }
 
@@ -398,7 +514,7 @@ class OFAC_Admin_Logs {
     public function ajax_bulk_delete() {
         check_ajax_referer( 'ofac_admin_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_logs' ) ) {
             wp_send_json_error( __( 'Permission refusée.', 'anythingllm-chatbot' ) );
         }
 

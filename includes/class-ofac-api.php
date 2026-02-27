@@ -88,6 +88,8 @@ class OFAC_API {
         add_action( 'wp_ajax_ofac_test_connection', array( $this, 'handle_test_connection' ) );
         add_action( 'wp_ajax_ofac_upload_file', array( $this, 'handle_file_upload' ) );
         add_action( 'wp_ajax_nopriv_ofac_upload_file', array( $this, 'handle_file_upload' ) );
+        add_action( 'wp_ajax_ofac_get_suggestions', array( $this, 'handle_get_suggestions' ) );
+        add_action( 'wp_ajax_nopriv_ofac_get_suggestions', array( $this, 'handle_get_suggestions' ) );
     }
 
     /**
@@ -584,7 +586,7 @@ class OFAC_API {
         }
 
         // Check permissions
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_settings' ) ) {
             wp_send_json_error( array( 'message' => __( 'Permissions insuffisantes', 'anythingllm-chatbot' ) ), 403 );
             return;
         }
@@ -699,6 +701,71 @@ class OFAC_API {
             'filename' => basename( $file['name'] ),
             'data'     => $data,
         ) );
+    }
+
+    /**
+     * Handle AJAX request for welcome suggestions
+     */
+    public function handle_get_suggestions() {
+        if ( ! check_ajax_referer( 'ofac_chat_nonce', 'nonce', false ) ) {
+            wp_send_json_error( array( 'message' => __( 'Nonce invalide', 'anythingllm-chatbot' ) ), 403 );
+        }
+
+        $suggestions = $this->get_welcome_suggestions();
+
+        wp_send_json_success( array( 'suggestions' => $suggestions ) );
+    }
+
+    /**
+     * Get welcome suggestions
+     *
+     * Priority: manual settings > AnythingLLM workspace suggestedMessages
+     *
+     * @return array
+     */
+    public function get_welcome_suggestions() {
+        $settings = OFAC_Settings::get_instance();
+
+        // Priorite 1 : suggestions manuelles configurees dans les settings
+        $manual = $settings->get( 'ofac_welcome_suggestions', '' );
+        if ( ! empty( $manual ) ) {
+            $lines = array_filter( array_map( 'trim', explode( "\n", $manual ) ) );
+            if ( ! empty( $lines ) ) {
+                return array_values( $lines );
+            }
+        }
+
+        // Priorite 2 : suggestions du workspace AnythingLLM
+        if ( ! $this->is_configured() ) {
+            return array();
+        }
+
+        $cached = get_transient( 'ofac_workspace_suggestions' );
+        if ( false !== $cached ) {
+            return $cached;
+        }
+
+        $response = $this->request( sprintf( 'api/v1/workspace/%s', $this->workspace_slug ) );
+
+        if ( is_wp_error( $response ) ) {
+            return array();
+        }
+
+        $suggestions = array();
+        if ( isset( $response['workspace']['suggestedMessages'] ) && is_array( $response['workspace']['suggestedMessages'] ) ) {
+            foreach ( $response['workspace']['suggestedMessages'] as $msg ) {
+                if ( isset( $msg['heading'] ) ) {
+                    $suggestions[] = $msg['heading'];
+                } elseif ( is_string( $msg ) ) {
+                    $suggestions[] = $msg;
+                }
+            }
+        }
+
+        // Cache pour 5 minutes
+        set_transient( 'ofac_workspace_suggestions', $suggestions, 5 * MINUTE_IN_SECONDS );
+
+        return $suggestions;
     }
 
     /**

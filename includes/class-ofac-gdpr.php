@@ -316,7 +316,7 @@ class OFAC_GDPR {
      * Export user data via AJAX (admin)
      */
     public function export_user_data() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_gdpr' ) ) {
             wp_send_json_error( array( 'message' => __( 'Non autorisé', 'anythingllm-chatbot' ) ), 403 );
         }
 
@@ -342,7 +342,7 @@ class OFAC_GDPR {
      * Delete user data via AJAX (admin)
      */
     public function delete_user_data() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_gdpr' ) ) {
             wp_send_json_error( array( 'message' => __( 'Non autorisé', 'anythingllm-chatbot' ) ), 403 );
         }
 

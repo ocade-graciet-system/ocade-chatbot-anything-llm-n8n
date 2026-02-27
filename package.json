@@ -7,7 +7,8 @@
     "build:js": "terser assets/js/chatbot.js -c -m -o assets/js/chatbot.min.js && terser assets/js/admin.js -c -m -o assets/js/admin.min.js",
     "build:css": "cleancss -o assets/css/chatbot.min.css assets/css/chatbot.css && cleancss -o assets/css/admin.min.css assets/css/admin.css",
     "build": "npm run build:js && npm run build:css",
-    "zip": "zip -r ocade-fusion-anythingllm-chatbot.zip . -x 'node_modules/*' -x '.git/*' -x '*.zip' -x 'package-lock.json'",
+    "zip": "powershell.exe -Command \"Remove-Item -Force ocade-fusion-anythingllm-chatbot.zip -ErrorAction SilentlyContinue; Compress-Archive -Path admin,assets,includes,languages,public,templates,ocade-fusion-anythingllm-chatbot.php,metadata.json,uninstall.php -DestinationPath ocade-fusion-anythingllm-chatbot.zip\"",
+    "package": "npm run build && npm run zip",
     "test": "echo \"No tests configured\" && exit 0"
   },
   "keywords": [

@@ -43,7 +43,7 @@ class OFAC_Admin_Settings {
      * Render settings page
      */
     public function render() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_settings' ) ) {
             return;
         }
 
@@ -117,6 +117,15 @@ class OFAC_Admin_Settings {
                                             <?php esc_html_e( 'Tester la connexion', 'anythingllm-chatbot' ); ?>
                                         </button>
                                         <span id="ofac-connection-result"></span>
+                                    </p>
+                                <?php endif; ?>
+
+                                <?php if ( $section_id === 'support' ) : ?>
+                                    <p>
+                                        <button type="button" class="button" id="ofac-test-email">
+                                            <?php esc_html_e( 'Tester l\'envoi d\'email', 'anythingllm-chatbot' ); ?>
+                                        </button>
+                                        <span id="ofac-email-test-result"></span>
                                     </p>
                                 <?php endif; ?>
                             </div>
@@ -425,6 +434,11 @@ class OFAC_Admin_Settings {
             $this->settings->set( $key, $value );
         }
 
+        // Sync capabilities if permission settings changed
+        if ( isset( $settings['ofac_logs_roles'] ) || isset( $settings['ofac_callbacks_roles'] ) || isset( $settings['ofac_stats_roles'] ) ) {
+            OFAC_Capabilities::get_instance()->sync_capabilities();
+        }
+
         // Purge caches after saving settings
         if ( function_exists( 'w3tc_flush_all' ) ) {
             w3tc_flush_all();
@@ -454,7 +468,7 @@ class OFAC_Admin_Settings {
     public function ajax_test_connection() {
         check_ajax_referer( 'ofac_admin_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_settings' ) ) {
             wp_send_json_error( array( 'message' => __( 'Permission refusée.', 'anythingllm-chatbot' ) ) );
         }
 
@@ -474,7 +488,7 @@ class OFAC_Admin_Settings {
     public function ajax_export_settings() {
         check_ajax_referer( 'ofac_admin_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_settings' ) ) {
             wp_send_json_error( __( 'Permission refusée.', 'anythingllm-chatbot' ) );
         }
 
@@ -492,7 +506,7 @@ class OFAC_Admin_Settings {
     public function ajax_import_settings() {
         check_ajax_referer( 'ofac_admin_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_settings' ) ) {
             wp_send_json_error( __( 'Permission refusée.', 'anythingllm-chatbot' ) );
         }
 
@@ -517,7 +531,7 @@ class OFAC_Admin_Settings {
     public function ajax_reset_settings() {
         check_ajax_referer( 'ofac_admin_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_settings' ) ) {
             wp_send_json_error( __( 'Permission refusée.', 'anythingllm-chatbot' ) );
         }
 

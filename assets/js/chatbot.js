@@ -40,6 +40,9 @@
             // Image en attente d'envoi
             this.pendingImage = null;
 
+            // Suggestions d'accueil chargées
+            this.welcomeSuggestionsLoaded = false;
+
             // Éléments DOM
             this.elements = {};
 
@@ -117,7 +120,20 @@
                 quickReplies: document.getElementById('ofac-quick-replies'),
                 exportBtn: document.getElementById('ofac-export'),
                 resetBtn: document.getElementById('ofac-reset'),
-                fullscreenBtn: document.getElementById('ofac-fullscreen')
+                fullscreenBtn: document.getElementById('ofac-fullscreen'),
+                // Support overlays
+                contactBtn: document.getElementById('ofac-contact-support'),
+                contactOverlay: document.getElementById('ofac-contact-overlay'),
+                contactClose: document.getElementById('ofac-contact-close'),
+                callbackBtn: document.getElementById('ofac-callback-btn'),
+                callbackOverlay: document.getElementById('ofac-callback-overlay'),
+                callbackForm: document.getElementById('ofac-callback-form'),
+                callbackEmail: document.getElementById('ofac-callback-email'),
+                callbackPhone: document.getElementById('ofac-callback-phone'),
+                callbackMessage: document.getElementById('ofac-callback-message'),
+                callbackSubmit: document.getElementById('ofac-callback-submit'),
+                callbackCancel: document.getElementById('ofac-callback-cancel'),
+                callbackSuccess: document.getElementById('ofac-callback-success')
             };
         }
 
@@ -204,6 +220,28 @@
             // Fullscreen
             if (this.elements.fullscreenBtn) {
                 this.elements.fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+            }
+
+            // Contact support overlay
+            if (this.elements.contactBtn) {
+                this.elements.contactBtn.addEventListener('click', () => this.showOverlay('contact'));
+            }
+            if (this.elements.contactClose) {
+                this.elements.contactClose.addEventListener('click', () => this.hideOverlay('contact'));
+            }
+
+            // Callback overlay
+            if (this.elements.callbackBtn) {
+                this.elements.callbackBtn.addEventListener('click', () => this.showCallbackOverlay());
+            }
+            if (this.elements.callbackCancel) {
+                this.elements.callbackCancel.addEventListener('click', () => this.hideOverlay('callback'));
+            }
+            if (this.elements.callbackForm) {
+                this.elements.callbackForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.submitCallbackRequest();
+                });
             }
 
             // Événements globaux
@@ -356,6 +394,9 @@
             // Focus sur le champ de saisie (seulement si consentement donné)
             setTimeout(() => this.focusInput(), 100);
 
+            // Charger les suggestions d'accueil (une seule fois)
+            this.loadWelcomeSuggestions();
+
             // Annoncer l'ouverture aux lecteurs d'écran
             this.announce(this.config.labels.chat_opened || 'Chat ouvert');
 
@@ -460,7 +501,10 @@
             if (this.elements.consentDialog) {
                 this.elements.consentDialog.classList.add('ofac-consent--visible');
                 this.elements.consentDialog.setAttribute('aria-hidden', 'false');
-                
+                if (this.elements.modal) {
+                    this.elements.modal.classList.add('ofac-consent-active');
+                }
+
                 if (this.elements.consentAccept) {
                     this.elements.consentAccept.focus();
                 }
@@ -474,6 +518,9 @@
             if (this.elements.consentDialog) {
                 this.elements.consentDialog.classList.remove('ofac-consent--visible');
                 this.elements.consentDialog.setAttribute('aria-hidden', 'true');
+            }
+            if (this.elements.modal) {
+                this.elements.modal.classList.remove('ofac-consent-active');
             }
         }
 
@@ -490,8 +537,11 @@
             // Réactiver la zone de saisie
             this.enableInputArea();
 
-            // Ouvrir le chatbot
-            this.open();
+            // Focus sur le champ de saisie
+            setTimeout(() => this.focusInput(), 100);
+
+            // Charger les suggestions d'accueil
+            this.loadWelcomeSuggestions();
         }
 
         /**
@@ -623,6 +673,7 @@
             this.isProcessing = true;
             this.disableSendButton();
             this.clearInput();
+            this.hideQuickReplies();
 
             // Capturer l'image en attente avant de la supprimer
             const imageToSend = this.pendingImage;
@@ -936,28 +987,135 @@
 
             let html = this.escapeHtml(text);
 
-            // Code blocks
+            // Code blocks (extraire avant tout traitement)
+            const codeBlocks = [];
             html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
                 const language = lang || 'plaintext';
-                return `<pre class="ofac-code-block" data-language="${language}"><code class="language-${language}">${code.trim()}</code></pre>`;
+                const placeholder = `%%CODEBLOCK_${codeBlocks.length}%%`;
+                codeBlocks.push(`<pre class="ofac-code-block" data-language="${language}"><code class="language-${language}">${code.trim()}</code></pre>`);
+                return placeholder;
             });
 
-            // Inline code
-            html = html.replace(/`([^`]+)`/g, '<code class="ofac-inline-code">$1</code>');
+            // Inline code (extraire avant tout traitement)
+            const inlineCodes = [];
+            html = html.replace(/`([^`]+)`/g, (match, code) => {
+                const placeholder = `%%INLINECODE_${inlineCodes.length}%%`;
+                inlineCodes.push(`<code class="ofac-inline-code">${code}</code>`);
+                return placeholder;
+            });
 
-            // Bold
-            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            // Traiter par blocs (lignes)
+            const lines = html.split('\n');
+            let result = [];
+            let inList = false;
+            let listType = null;
 
-            // Italic
-            html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
 
-            // Links
-            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+                // Titres
+                if (/^#{1,6}\s/.test(line)) {
+                    if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
+                    const level = line.match(/^(#{1,6})\s/)[1].length;
+                    const content = line.replace(/^#{1,6}\s+/, '');
+                    result.push(`<h${level} class="ofac-md-heading">${this.inlineFormat(content)}</h${level}>`);
+                    continue;
+                }
 
-            // Line breaks
-            html = html.replace(/\n/g, '<br>');
+                // Séparateur horizontal
+                if (/^(-{3,}|\*{3,}|_{3,})$/.test(line.trim())) {
+                    if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
+                    result.push('<hr class="ofac-md-hr">');
+                    continue;
+                }
+
+                // Blockquote
+                if (/^&gt;\s?/.test(line)) {
+                    if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
+                    const content = line.replace(/^&gt;\s?/, '');
+                    result.push(`<blockquote class="ofac-md-blockquote">${this.inlineFormat(content)}</blockquote>`);
+                    continue;
+                }
+
+                // Liste non ordonnée
+                if (/^[\s]*[-*+]\s+/.test(line)) {
+                    if (!inList || listType !== 'ul') {
+                        if (inList) result.push(listType === 'ul' ? '</ul>' : '</ol>');
+                        result.push('<ul class="ofac-md-list">');
+                        inList = true;
+                        listType = 'ul';
+                    }
+                    const content = line.replace(/^[\s]*[-*+]\s+/, '');
+                    result.push(`<li>${this.inlineFormat(content)}</li>`);
+                    continue;
+                }
+
+                // Liste ordonnée
+                if (/^[\s]*\d+\.\s+/.test(line)) {
+                    if (!inList || listType !== 'ol') {
+                        if (inList) result.push(listType === 'ul' ? '</ul>' : '</ol>');
+                        result.push('<ol class="ofac-md-list">');
+                        inList = true;
+                        listType = 'ol';
+                    }
+                    const content = line.replace(/^[\s]*\d+\.\s+/, '');
+                    result.push(`<li>${this.inlineFormat(content)}</li>`);
+                    continue;
+                }
+
+                // Fermer la liste si on n'est plus dans un élément de liste
+                if (inList) {
+                    result.push(listType === 'ul' ? '</ul>' : '</ol>');
+                    inList = false;
+                }
+
+                // Ligne vide = saut de paragraphe
+                if (line.trim() === '') {
+                    result.push('<br>');
+                    continue;
+                }
+
+                // Placeholder de code block
+                if (/^%%CODEBLOCK_\d+%%$/.test(line.trim())) {
+                    result.push(line.trim());
+                    continue;
+                }
+
+                // Texte normal
+                result.push(`<p class="ofac-md-paragraph">${this.inlineFormat(line)}</p>`);
+            }
+
+            // Fermer une liste encore ouverte
+            if (inList) {
+                result.push(listType === 'ul' ? '</ul>' : '</ol>');
+            }
+
+            html = result.join('\n');
+
+            // Restaurer les code blocks et inline codes
+            codeBlocks.forEach((block, i) => {
+                html = html.replace(`%%CODEBLOCK_${i}%%`, block);
+            });
+            inlineCodes.forEach((code, i) => {
+                html = html.replace(`%%INLINECODE_${i}%%`, code);
+            });
 
             return html;
+        }
+
+        /**
+         * Formatage inline (bold, italic, links, etc.)
+         */
+        inlineFormat(text) {
+            // Bold
+            text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            // Italic
+            text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            // Strikethrough
+            text = text.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+            // Links
+            text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+            return text;
         }
 
         /**
@@ -1192,9 +1350,11 @@
 
             // Attacher les événements
             this.elements.quickReplies.querySelectorAll('.ofac-quick-reply').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    this.sendMessage(btn.textContent);
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const text = btn.textContent;
                     this.hideQuickReplies();
+                    this.sendMessage(text);
                 });
             });
         }
@@ -1206,6 +1366,182 @@
             if (this.elements.quickReplies) {
                 this.elements.quickReplies.classList.remove('ofac-quick-replies--visible');
                 this.elements.quickReplies.innerHTML = '';
+            }
+        }
+
+        /**
+         * Chargement des suggestions d'accueil (une seule fois)
+         */
+        async loadWelcomeSuggestions() {
+            if (this.welcomeSuggestionsLoaded) return;
+            // Ne pas charger si l'historique contient déjà des messages utilisateur
+            if (this.conversationHistory.some(m => m.role === 'user')) return;
+
+            this.welcomeSuggestionsLoaded = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('action', 'ofac_get_suggestions');
+                formData.append('nonce', this.config.nonce);
+
+                const response = await fetch(this.config.ajax_url, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.data.suggestions && data.data.suggestions.length > 0) {
+                    this.showQuickReplies(data.data.suggestions);
+                }
+            } catch (error) {
+                // Silencieux en cas d'erreur - les suggestions sont optionnelles
+                console.debug('OFAC: Could not load welcome suggestions', error);
+            }
+        }
+
+        /**
+         * Affiche un overlay (contact ou callback)
+         */
+        showOverlay(type) {
+            const overlay = type === 'contact' ? this.elements.contactOverlay : this.elements.callbackOverlay;
+            if (!overlay) return;
+
+            overlay.classList.add('ofac-overlay--visible');
+            overlay.setAttribute('aria-hidden', 'false');
+
+            // Focus le premier element interactif
+            const firstFocusable = overlay.querySelector('a, button, input, textarea, [tabindex]:not([tabindex="-1"])');
+            if (firstFocusable) {
+                setTimeout(() => firstFocusable.focus(), 100);
+            }
+
+            // Fermer avec Echap
+            this._overlayEscHandler = (e) => {
+                if (e.key === 'Escape') {
+                    this.hideOverlay(type);
+                }
+            };
+            overlay.addEventListener('keydown', this._overlayEscHandler);
+        }
+
+        /**
+         * Masque un overlay
+         */
+        hideOverlay(type) {
+            const overlay = type === 'contact' ? this.elements.contactOverlay : this.elements.callbackOverlay;
+            if (!overlay) return;
+
+            overlay.classList.remove('ofac-overlay--visible');
+            overlay.setAttribute('aria-hidden', 'true');
+
+            if (this._overlayEscHandler) {
+                overlay.removeEventListener('keydown', this._overlayEscHandler);
+            }
+
+            // Re-focus sur le bouton d'origine
+            const btn = type === 'contact' ? this.elements.contactBtn : this.elements.callbackBtn;
+            if (btn) btn.focus();
+        }
+
+        /**
+         * Ouvre l'overlay de callback avec pre-remplissage
+         */
+        showCallbackOverlay() {
+            // Pre-remplir l'email si l'utilisateur est connecte
+            if (this.elements.callbackEmail && this.config.user_email) {
+                this.elements.callbackEmail.value = this.config.user_email;
+            }
+
+            // Reset le formulaire et l'etat
+            if (this.elements.callbackSuccess) {
+                this.elements.callbackSuccess.style.display = 'none';
+            }
+            if (this.elements.callbackForm) {
+                this.elements.callbackForm.style.display = '';
+            }
+
+            this.showOverlay('callback');
+        }
+
+        /**
+         * Soumet la demande de callback
+         */
+        async submitCallbackRequest() {
+            const email = this.elements.callbackEmail ? this.elements.callbackEmail.value.trim() : '';
+            const phone = this.elements.callbackPhone ? this.elements.callbackPhone.value.trim() : '';
+            const message = this.elements.callbackMessage ? this.elements.callbackMessage.value.trim() : '';
+
+            if (!email || !message) return;
+
+            const submitBtn = this.elements.callbackSubmit;
+            const form = this.elements.callbackForm;
+            const successEl = document.getElementById('ofac-callback-success');
+            const errorEl = document.getElementById('ofac-callback-error');
+            const originalBtnText = submitBtn ? submitBtn.textContent : '';
+
+            // Etat loading : spinner + desactiver le formulaire
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="ofac-spinner" aria-hidden="true"></span> ' + (this.config.labels.sending || 'Envoi en cours...');
+            }
+            if (form) form.classList.add('ofac-form--loading');
+            if (errorEl) errorEl.style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                formData.append('action', 'ofac_request_callback');
+                formData.append('nonce', this.config.nonce);
+                formData.append('session_id', this.sessionId);
+                formData.append('email', email);
+                formData.append('phone', phone);
+                formData.append('message', message);
+
+                const response = await fetch(this.config.ajax_url, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Masquer le formulaire, afficher le succes
+                    if (form) form.style.display = 'none';
+                    if (successEl) successEl.style.display = '';
+
+                    // Message systeme dans le chat
+                    this.addMessage('system', this.config.labels.callbackSuccess || 'Votre demande a été envoyée ! Nous vous recontacterons rapidement.');
+
+                    // Fermer l'overlay puis le chatbot apres un delai
+                    setTimeout(() => {
+                        this.hideOverlay('callback');
+                        this.close();
+                    }, 3000);
+                } else {
+                    // Afficher l'erreur dans l'overlay
+                    const errorMsg = data.data?.message || this.config.labels.error_message || 'Une erreur est survenue. Veuillez réessayer.';
+                    if (errorEl) {
+                        errorEl.textContent = errorMsg;
+                        errorEl.style.display = '';
+                    } else {
+                        this.showToast(errorMsg, 'error');
+                    }
+                }
+            } catch (error) {
+                const errorMsg = this.config.labels.networkError || 'Erreur réseau. Vérifiez votre connexion et réessayez.';
+                if (errorEl) {
+                    errorEl.textContent = errorMsg;
+                    errorEl.style.display = '';
+                } else {
+                    this.showToast(errorMsg, 'error');
+                }
+            } finally {
+                // Restaurer le bouton
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalBtnText;
+                }
+                if (form) form.classList.remove('ofac-form--loading');
             }
         }
 

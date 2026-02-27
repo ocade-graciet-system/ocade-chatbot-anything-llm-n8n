@@ -21,6 +21,7 @@
             this.initToggles();
             this.initColorPickers();
             this.initApiTest();
+            this.initEmailTest();
             this.initChart();
             this.initGdprTools();
             this.initImportExport();
@@ -204,6 +205,50 @@
                     },
                     complete: function() {
                         $testBtn.prop('disabled', false);
+                    }
+                });
+            });
+        },
+
+        /**
+         * Initialize email test button
+         */
+        initEmailTest: function() {
+            $(document).on('click', '#ofac-test-email', function(e) {
+                e.preventDefault();
+
+                var $btn = $(this);
+                var $result = $('#ofac-email-test-result');
+                var originalText = $btn.text();
+
+                $btn.prop('disabled', true).html('<span class="ofac-spinner"></span> Envoi en cours...');
+                $result.html('<span class="ofac-result-loading"><span class="ofac-spinner"></span> Envoi du test...</span>');
+
+                $.ajax({
+                    url: ofacAdmin.ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 'ofac_test_email',
+                        nonce: ofacAdmin.nonce
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $result.html('<span class="ofac-result-success">' + response.data.message + '</span>');
+                            $btn.html('Envoyé !').addClass('ofac-btn-success');
+                            setTimeout(function() {
+                                $btn.removeClass('ofac-btn-success').text(originalText);
+                            }, 3000);
+                        } else {
+                            $result.html('<span class="ofac-result-error">' + (response.data.message || 'Erreur inconnue') + '</span>');
+                            $btn.text(originalText);
+                        }
+                    },
+                    error: function() {
+                        $result.html('<span class="ofac-result-error">Erreur de connexion</span>');
+                        $btn.text(originalText);
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false);
                     }
                 });
             });
@@ -688,6 +733,7 @@
         init: function() {
             this.bindEvents();
             this.initModal();
+            this.checkAutoOpen();
         },
 
         bindEvents: function() {
@@ -702,6 +748,12 @@
 
             // Select all
             $('#cb-select-all').on('change', this.selectAll.bind(this));
+
+            // Generate draft reply
+            $(document).on('click', '.ofac-generate-draft', this.generateDraft.bind(this));
+
+            // Send reply email
+            $(document).on('click', '.ofac-send-reply', this.sendReply.bind(this));
 
             // Close modal
             $(document).on('click', '.ofac-modal-close, .ofac-modal', function(e) {
@@ -720,13 +772,33 @@
             });
         },
 
-        viewMessages: function(e) {
-            e.preventDefault();
+        /**
+         * Auto-open conversation modal if URL has open_conversation param
+         */
+        checkAutoOpen: function() {
+            var self = this;
+            var params = new URLSearchParams(window.location.search);
+            var conversationId = params.get('open_conversation');
+            if (conversationId && $('#ofac-messages-modal').length) {
+                // Small delay to ensure DOM is fully painted
+                setTimeout(function() {
+                    self.openConversation(conversationId);
+                }, 300);
+                // Clean URL without reloading
+                params.delete('open_conversation');
+                var newUrl = window.location.pathname + '?' + params.toString();
+                if (history.replaceState) {
+                    history.replaceState(null, '', newUrl);
+                }
+            }
+        },
 
-            const $btn = $(e.currentTarget);
-            const conversationId = $btn.data('id');
-            const $modal = $('#ofac-messages-modal');
-            const $messagesList = $('#ofac-messages-list');
+        /**
+         * Open a conversation modal by ID
+         */
+        openConversation: function(conversationId) {
+            var $modal = $('#ofac-messages-modal');
+            var $messagesList = $('#ofac-messages-list');
 
             $messagesList.html('<p style="text-align:center;">Chargement...</p>');
             $modal.show();
@@ -750,6 +822,12 @@
                     $messagesList.html('<p>Erreur lors du chargement des messages.</p>');
                 }
             });
+        },
+
+        viewMessages: function(e) {
+            e.preventDefault();
+            var conversationId = $(e.currentTarget).data('id');
+            this.openConversation(conversationId);
         },
 
         deleteConversation: function(e) {
@@ -838,6 +916,102 @@
         selectAll: function(e) {
             const checked = $(e.currentTarget).is(':checked');
             $('input[name="conversation_ids[]"]').prop('checked', checked);
+        },
+
+        /**
+         * Generate draft reply via RAG
+         */
+        generateDraft: function(e) {
+            e.preventDefault();
+
+            const $btn = $(e.currentTarget);
+            const conversationId = $btn.data('id');
+            const $section = $btn.closest('.ofac-reply-section');
+            const $textarea = $section.find('.ofac-reply-body');
+            const originalText = $btn.text();
+
+            $btn.prop('disabled', true).html('<span class="ofac-spinner"></span> Génération en cours...');
+
+            $.ajax({
+                url: ofacAdmin.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'ofac_generate_reply_draft',
+                    nonce: ofacAdmin.nonce,
+                    conversation_id: conversationId
+                },
+                success: function(response) {
+                    if (response.success && response.data.draft) {
+                        $textarea.val(response.data.draft);
+                        OFACAdmin.showNotice('success', 'Brouillon généré avec succès.');
+                    } else {
+                        OFACAdmin.showNotice('error', response.data?.message || 'Erreur lors de la génération du brouillon.');
+                    }
+                },
+                error: function() {
+                    OFACAdmin.showNotice('error', 'Erreur lors de la génération du brouillon.');
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).text(originalText);
+                }
+            });
+        },
+
+        /**
+         * Send reply email
+         */
+        sendReply: function(e) {
+            e.preventDefault();
+
+            const $btn = $(e.currentTarget);
+            const $section = $btn.closest('.ofac-reply-section');
+            const to = $section.find('.ofac-reply-to').val();
+            const subject = $section.find('.ofac-reply-subject').val();
+            const body = $section.find('.ofac-reply-body').val();
+            const requestId = $section.data('request-id');
+
+            if (!to || !subject || !body) {
+                OFACAdmin.showNotice('error', 'Veuillez remplir tous les champs.');
+                return;
+            }
+
+            if (!confirm('Envoyer cet email à ' + to + ' ?')) {
+                return;
+            }
+
+            const originalText = $btn.text();
+            $btn.prop('disabled', true).html('<span class="ofac-spinner"></span> Envoi en cours...');
+
+            $.ajax({
+                url: ofacAdmin.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'ofac_send_reply_email',
+                    nonce: ofacAdmin.nonce,
+                    to: to,
+                    subject: subject,
+                    body: body,
+                    request_id: requestId
+                },
+                success: function(response) {
+                    if (response.success) {
+                        OFACAdmin.showNotice('success', 'Email envoyé avec succès.');
+                        // Update badge status
+                        $section.find('.ofac-badge').removeClass('ofac-badge--warning').addClass('ofac-badge--success').text('Répondu');
+                        $btn.html('<span class="dashicons dashicons-yes" style="vertical-align:middle;margin-right:4px;"></span> Envoyé !');
+                        setTimeout(function() {
+                            $btn.prop('disabled', false).text(originalText);
+                        }, 3000);
+                    } else {
+                        OFACAdmin.showNotice('error', response.data?.message || 'Erreur lors de l\'envoi.');
+                        $btn.prop('disabled', false).text(originalText);
+                    }
+                },
+                error: function() {
+                    OFACAdmin.showNotice('error', 'Erreur lors de l\'envoi.');
+                    $btn.prop('disabled', false).text(originalText);
+                }
+            });
         }
     };
 
@@ -977,11 +1151,144 @@
         }
     };
 
+    /**
+     * Callbacks Module - Demandes de rappel
+     */
+    const OFACCallbacks = {
+        init: function() {
+            if (!$('.ofac-callbacks-table').length) return;
+            this.bindEvents();
+        },
+
+        bindEvents: function() {
+            // Changer le statut
+            $(document).on('click', '.ofac-cb-status-btn', this.updateStatus.bind(this));
+            // Supprimer
+            $(document).on('click', '.ofac-cb-delete-btn', this.deleteCallback.bind(this));
+            // Action groupee
+            $('#ofac-cb-bulk-btn').on('click', this.bulkAction.bind(this));
+            // Select all
+            $('#cb-select-all').on('change', function() {
+                $('input[name="callback_ids[]"]').prop('checked', $(this).prop('checked'));
+            });
+            // Voir les reponses
+            $(document).on('click', '.ofac-view-replies', this.viewReplies.bind(this));
+            // Fermer le modal reponses
+            $(document).on('click', '#ofac-replies-modal .ofac-modal-close', function() {
+                $('#ofac-replies-modal').hide();
+            });
+            $(document).on('click', '#ofac-replies-modal', function(e) {
+                if (e.target === this) $(this).hide();
+            });
+        },
+
+        updateStatus: function(e) {
+            var btn = $(e.currentTarget);
+            var id = btn.data('id');
+            var status = btn.data('status');
+            var row = btn.closest('tr');
+
+            btn.prop('disabled', true);
+
+            $.post(ofacAdmin.ajaxUrl, {
+                action: 'ofac_update_callback_status',
+                nonce: ofacAdmin.nonce,
+                id: id,
+                status: status
+            }, function(response) {
+                if (response.success) {
+                    row.find('.column-status').html(response.data.badge);
+                    // Mettre a jour les boutons d'actions
+                    var actionsHtml = '';
+                    if (status === 'replied') {
+                        actionsHtml += '<button type="button" class="button button-small ofac-cb-status-btn" data-id="' + id + '" data-status="closed" title="Fermer">&#10005;</button> ';
+                    }
+                    actionsHtml += '<button type="button" class="button button-small ofac-cb-delete-btn" data-id="' + id + '" title="Supprimer"><span class="dashicons dashicons-trash" style="font-size:14px;width:14px;height:14px;line-height:14px;vertical-align:middle;"></span></button>';
+                    row.find('.column-actions').html(actionsHtml);
+                }
+            }).fail(function() {
+                btn.prop('disabled', false);
+            });
+        },
+
+        deleteCallback: function(e) {
+            if (!confirm(ofacAdmin.strings.confirmDelete)) return;
+
+            var btn = $(e.currentTarget);
+            var id = btn.data('id');
+            var row = btn.closest('tr');
+
+            btn.prop('disabled', true);
+
+            $.post(ofacAdmin.ajaxUrl, {
+                action: 'ofac_delete_callback',
+                nonce: ofacAdmin.nonce,
+                id: id
+            }, function(response) {
+                if (response.success) {
+                    row.fadeOut(300, function() { $(this).remove(); });
+                }
+            }).fail(function() {
+                btn.prop('disabled', false);
+            });
+        },
+
+        viewReplies: function(e) {
+            var btn = $(e.currentTarget);
+            var requestId = btn.data('request-id');
+            var modal = $('#ofac-replies-modal');
+            var list = $('#ofac-replies-list');
+
+            list.html('<p style="text-align:center;padding:20px;">Chargement...</p>');
+            modal.show();
+
+            $.post(ofacAdmin.ajaxUrl, {
+                action: 'ofac_get_ticket_replies',
+                nonce: ofacAdmin.nonce,
+                request_id: requestId
+            }, function(response) {
+                if (response.success) {
+                    list.html(response.data.html);
+                } else {
+                    list.html('<p>Erreur lors du chargement.</p>');
+                }
+            }).fail(function() {
+                list.html('<p>Erreur de connexion.</p>');
+            });
+        },
+
+        bulkAction: function() {
+            var action = $('#ofac-cb-bulk-action').val();
+            if (!action) return;
+
+            var ids = [];
+            $('input[name="callback_ids[]"]:checked').each(function() {
+                ids.push($(this).val());
+            });
+
+            if (!ids.length) return;
+
+            if (action === 'delete' && !confirm(ofacAdmin.strings.confirmDelete)) return;
+
+            $.post(ofacAdmin.ajaxUrl, {
+                action: 'ofac_bulk_callbacks',
+                nonce: ofacAdmin.nonce,
+                bulk_action: action,
+                ids: ids
+            }, function(response) {
+                if (response.success) {
+                    location.reload();
+                }
+            });
+        }
+    };
+
     // Initialize on document ready
     $(document).ready(function() {
         OFACAdmin.init();
         OFACLogs.init();
         OFACCharts.init();
+        OFACCallbacks.init();
     });
 
 })(jQuery);

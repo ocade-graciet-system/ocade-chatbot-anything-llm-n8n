@@ -32,7 +32,7 @@ class OFAC_Admin_Stats {
      * Render stats page
      */
     public function render() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_stats' ) ) {
             return;
         }
 
@@ -188,7 +188,7 @@ class OFAC_Admin_Stats {
     public function ajax_get_stats_data() {
         check_ajax_referer( 'ofac_admin_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_ofac_stats' ) ) {
             wp_send_json_error( __( 'Permission refusée.', 'anythingllm-chatbot' ) );
         }
 

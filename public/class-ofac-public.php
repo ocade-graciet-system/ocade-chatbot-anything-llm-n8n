@@ -131,7 +131,7 @@ class OFAC_Public {
     private function get_frontend_config() {
         $accessibility = OFAC_Accessibility::get_instance();
 
-        return array(
+        $config = array(
             'ajax_url'       => admin_url( 'admin-ajax.php' ),
             'nonce'          => wp_create_nonce( 'ofac_chat_nonce' ),
             'stream_enabled' => (bool) $this->settings->get( 'ofac_enable_streaming', false ),
@@ -144,6 +144,15 @@ class OFAC_Public {
                 'export' => '/export',
             ),
         );
+
+        // Ajouter l'email de l'utilisateur connecte pour le pre-remplissage
+        if ( is_user_logged_in() ) {
+            $current_user = wp_get_current_user();
+            $config['user_email'] = $current_user->user_email;
+            $config['user_display_name'] = $current_user->display_name;
+        }
+
+        return $config;
     }
 
     /**
@@ -243,11 +252,20 @@ class OFAC_Public {
         $bot_avatar = $this->settings->get( 'ofac_bot_avatar', '' );
         $user_avatar = $this->settings->get( 'ofac_user_avatar', '' );
         $primary_color = $this->settings->get( 'ofac_primary_color', '#2563eb' );
+        $text_color = $this->settings->get( 'ofac_text_color', '#ffffff' );
         $width_desktop = $this->settings->get( 'ofac_width_desktop', 400 );
         $height_desktop = $this->settings->get( 'ofac_height_desktop', 600 );
 
         $bot_avatar_url = $bot_avatar ? wp_get_attachment_url( $bot_avatar ) : '';
         $user_avatar_url = $user_avatar ? wp_get_attachment_url( $user_avatar ) : '';
+
+        // Support settings
+        $enable_contact_btn  = (bool) $this->settings->get( 'ofac_enable_contact_btn', false );
+        $contact_btn_label   = $this->settings->get( 'ofac_contact_btn_label', __( 'Contacter le support', 'anythingllm-chatbot' ) );
+        $contact_email       = $this->settings->get( 'ofac_contact_email', '' );
+        $contact_phone       = $this->settings->get( 'ofac_contact_phone', '' );
+        $enable_callback_btn = (bool) $this->settings->get( 'ofac_enable_callback_btn', false );
+        $callback_btn_label  = $this->settings->get( 'ofac_callback_btn_label', __( 'Être recontacté', 'anythingllm-chatbot' ) );
 
         $container_class = 'ofac-chatbot';
         if ( $inline ) {
@@ -257,9 +275,10 @@ class OFAC_Public {
 
         // Apply custom CSS variables
         $style = sprintf(
-            '--ofac-primary: %s; --ofac-primary-hover: %s; --ofac-modal-width: %dpx; --ofac-modal-height: %dpx; --ofac-bg-message-user: %s; --ofac-border-focus: %s; --ofac-text-link: %s;',
+            '--ofac-primary: %s; --ofac-primary-hover: %s; --ofac-text-inverse: %s; --ofac-modal-width: %dpx; --ofac-modal-height: %dpx; --ofac-bg-message-user: %s; --ofac-border-focus: %s; --ofac-text-link: %s;',
             esc_attr( $primary_color ),
             esc_attr( $this->adjust_brightness( $primary_color, -20 ) ),
+            esc_attr( $text_color ),
             intval( $width_desktop ),
             intval( $height_desktop ),
             esc_attr( $primary_color ),

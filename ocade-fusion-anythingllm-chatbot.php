@@ -131,6 +131,8 @@ final class OFAC_Plugin {
         require_once OFAC_PLUGIN_DIR . 'includes/class-ofac-rate-limiter.php';
         require_once OFAC_PLUGIN_DIR . 'includes/class-ofac-gdpr.php';
         require_once OFAC_PLUGIN_DIR . 'includes/class-ofac-logs.php';
+        require_once OFAC_PLUGIN_DIR . 'includes/class-ofac-email.php';
+        require_once OFAC_PLUGIN_DIR . 'includes/class-ofac-capabilities.php';
 
         // Admin classes
         if ( is_admin() ) {
@@ -213,6 +215,12 @@ final class OFAC_Plugin {
         // Initialize logs
         OFAC_Logs::get_instance();
 
+        // Initialize email handler
+        OFAC_Email::get_instance();
+
+        // Initialize capabilities
+        OFAC_Capabilities::get_instance();
+
         // Initialize admin
         if ( is_admin() ) {
             $this->admin = OFAC_Admin::get_instance();
@@ -251,6 +259,9 @@ final class OFAC_Plugin {
         // Set default options
         $this->set_default_options();
 
+        // Create custom role and capabilities
+        OFAC_Capabilities::activate();
+
         // Clear rewrite rules
         flush_rewrite_rules();
 
@@ -273,6 +284,9 @@ final class OFAC_Plugin {
         wp_clear_scheduled_hook( 'ofac_cleanup_logs' );
         wp_clear_scheduled_hook( 'ofac_cleanup_cache' );
         wp_clear_scheduled_hook( 'ofac_cleanup_gdpr_data' );
+
+        // Remove custom role and capabilities
+        OFAC_Capabilities::deactivate();
 
         // Clear rewrite rules
         flush_rewrite_rules();
@@ -300,6 +314,8 @@ final class OFAC_Plugin {
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}ofac_stats" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}ofac_feedback" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}ofac_consents" );
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}ofac_callback_requests" );
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}ofac_ticket_replies" );
 
         // Delete transients
         $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_ofac_%'" );
@@ -393,6 +409,35 @@ final class OFAC_Plugin {
             PRIMARY KEY (id),
             KEY session_id (session_id),
             KEY expires_at (expires_at)
+        ) $charset_collate;";
+
+        // Callback requests table
+        $sql[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}ofac_callback_requests (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            conversation_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            email varchar(255) NOT NULL,
+            phone varchar(50) DEFAULT NULL,
+            message text DEFAULT NULL,
+            status varchar(20) DEFAULT 'pending',
+            created_at datetime NOT NULL,
+            replied_at datetime DEFAULT NULL,
+            PRIMARY KEY (id),
+            KEY conversation_id (conversation_id),
+            KEY status (status)
+        ) $charset_collate;";
+
+        // Ticket replies table (historique des reponses support)
+        $sql[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}ofac_ticket_replies (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            request_id bigint(20) unsigned NOT NULL,
+            user_id bigint(20) unsigned NOT NULL,
+            subject varchar(255) NOT NULL,
+            body longtext NOT NULL,
+            email_sent tinyint(1) DEFAULT 0,
+            created_at datetime NOT NULL,
+            PRIMARY KEY (id),
+            KEY request_id (request_id),
+            KEY created_at (created_at)
         ) $charset_collate;";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
