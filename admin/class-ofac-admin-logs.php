@@ -344,9 +344,17 @@ class OFAC_Admin_Logs {
 
         foreach ( $messages as $msg ) {
             $role_class = $msg->role === 'user' ? 'ofac-msg-user' : 'ofac-msg-bot';
-            $role_label = $msg->role === 'user' 
-                ? __( 'Utilisateur', 'anythingllm-chatbot' ) 
+            $role_label = $msg->role === 'user'
+                ? __( 'Utilisateur', 'anythingllm-chatbot' )
                 : __( 'Bot', 'anythingllm-chatbot' );
+
+            // Bot messages: render markdown as formatted HTML
+            // User messages: simple text with line breaks
+            if ( $msg->role === 'user' ) {
+                $content_html = nl2br( esc_html( $msg->content ) );
+            } else {
+                $content_html = $this->parse_markdown( $msg->content );
+            }
 
             $html .= sprintf(
                 '<div class="ofac-message %s">
@@ -359,7 +367,7 @@ class OFAC_Admin_Logs {
                 esc_attr( $role_class ),
                 esc_html( $role_label ),
                 esc_html( wp_date( 'd/m/Y H:i:s', strtotime( $msg->created_at ) ) ),
-                wp_kses_post( nl2br( $msg->content ) )
+                $content_html
             );
         }
 
@@ -385,32 +393,69 @@ class OFAC_Admin_Logs {
             }
         }
 
-        // Add reply form if we have an email
-        if ( $reply_email ) {
-            $status_badge = '';
-            if ( $callback_request ) {
-                $status_label = $callback_request->status === 'replied'
-                    ? __( 'Répondu', 'anythingllm-chatbot' )
-                    : __( 'En attente', 'anythingllm-chatbot' );
-                $status_class = $callback_request->status === 'replied' ? 'ofac-badge--success' : 'ofac-badge--warning';
-                $status_badge = '<span class="ofac-badge ' . esc_attr( $status_class ) . '">' . esc_html( $status_label ) . '</span>';
-            }
+        // Display thread entries (notes + emails) in the conversation flow
+        $thread_entries = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}ofac_ticket_replies WHERE conversation_id = %d ORDER BY created_at ASC",
+                $conversation_id
+            )
+        );
 
+        if ( ! empty( $thread_entries ) ) {
+            $html .= '<div class="ofac-thread-separator">';
+            $html .= '<span>' . esc_html__( 'Suivi client', 'anythingllm-chatbot' ) . '</span>';
+            $html .= '</div>';
+
+            foreach ( $thread_entries as $entry ) {
+                $entry_user = get_userdata( $entry->user_id );
+                $author_name = $entry_user ? $entry_user->display_name : __( 'Utilisateur supprime', 'anythingllm-chatbot' );
+                $is_email = ( empty( $entry->type ) || $entry->type === 'email' );
+
+                if ( $is_email ) {
+                    $entry_class = 'ofac-msg-email';
+                    $entry_label = __( 'Email envoye', 'anythingllm-chatbot' );
+                    $entry_icon = 'dashicons-email-alt';
+                } else {
+                    $entry_class = 'ofac-msg-note';
+                    $entry_label = __( 'Note interne', 'anythingllm-chatbot' );
+                    $entry_icon = 'dashicons-admin-comments';
+                }
+
+                $html .= '<div class="ofac-message ' . esc_attr( $entry_class ) . '">';
+                $html .= '<div class="ofac-message-header">';
+                $html .= '<span class="ofac-message-role"><span class="dashicons ' . esc_attr( $entry_icon ) . '" style="font-size:14px;width:14px;height:14px;vertical-align:middle;margin-right:4px;"></span>' . esc_html( $entry_label ) . ' &mdash; ' . esc_html( $author_name ) . '</span>';
+                $html .= '<span class="ofac-message-time">' . esc_html( wp_date( 'd/m/Y H:i:s', strtotime( $entry->created_at ) ) ) . '</span>';
+                $html .= '</div>';
+
+                if ( $is_email && ! empty( $entry->subject ) ) {
+                    $html .= '<div class="ofac-message-subject"><strong>' . esc_html__( 'Sujet', 'anythingllm-chatbot' ) . ' :</strong> ' . esc_html( $entry->subject ) . '</div>';
+                }
+
+                $html .= '<div class="ofac-message-content">' . wp_kses_post( nl2br( esc_html( $entry->body ) ) ) . '</div>';
+                $html .= '</div>';
+            }
+        }
+
+        // Unified thread action form
+        $request_id_attr = $callback_request ? $callback_request->id : 0;
+
+        $html .= '<div class="ofac-thread-actions" data-conversation-id="' . esc_attr( $conversation_id ) . '" data-request-id="' . esc_attr( $request_id_attr ) . '">';
+        $html .= '<div class="ofac-thread-form">';
+
+        // Textarea always visible
+        $html .= '<div class="ofac-reply-field">';
+        $html .= '<textarea class="ofac-reply-body" rows="4" placeholder="' . esc_attr__( 'Ecrivez votre note ou votre email...', 'anythingllm-chatbot' ) . '"></textarea>';
+        $html .= '</div>';
+
+        // Email fields (hidden by default, shown when clicking "Envoyer par email")
+        if ( $reply_email ) {
             $default_subject = sprintf(
-                __( 'Suite à votre échange avec notre assistant - %s', 'anythingllm-chatbot' ),
+                __( 'Suite a votre echange avec notre assistant - %s', 'anythingllm-chatbot' ),
                 get_bloginfo( 'name' )
             );
 
-            $html .= '<div class="ofac-reply-section" data-conversation-id="' . esc_attr( $conversation_id ) . '" data-request-id="' . esc_attr( $callback_request ? $callback_request->id : 0 ) . '">';
-            $html .= '<div class="ofac-reply-header">';
-            $html .= '<h3>' . esc_html__( 'Répondre au client', 'anythingllm-chatbot' ) . ' ' . $status_badge . '</h3>';
-            $html .= '<button type="button" class="button ofac-generate-draft" data-id="' . esc_attr( $conversation_id ) . '">';
-            $html .= '<span class="dashicons dashicons-admin-comments" style="vertical-align: middle; margin-right: 4px;"></span>';
-            $html .= esc_html__( 'Générer brouillon IA', 'anythingllm-chatbot' );
-            $html .= '</button>';
-            $html .= '</div>';
+            $html .= '<div class="ofac-email-fields" style="display:none;">';
 
-            $html .= '<div class="ofac-reply-form">';
             $html .= '<div class="ofac-reply-field">';
             $html .= '<label>' . esc_html__( 'Destinataire', 'anythingllm-chatbot' ) . '</label>';
             $html .= '<input type="email" class="ofac-reply-to" value="' . esc_attr( $reply_email ) . '" readonly>';
@@ -421,63 +466,26 @@ class OFAC_Admin_Logs {
             $html .= '<input type="text" class="ofac-reply-subject" value="' . esc_attr( $default_subject ) . '">';
             $html .= '</div>';
 
-            $html .= '<div class="ofac-reply-field">';
-            $html .= '<label>' . esc_html__( 'Message', 'anythingllm-chatbot' ) . '</label>';
-            $html .= '<textarea class="ofac-reply-body" rows="8" placeholder="' . esc_attr__( 'Cliquez sur "Générer brouillon IA" ou rédigez votre réponse...', 'anythingllm-chatbot' ) . '"></textarea>';
-            $html .= '</div>';
+            $html .= '</div>'; // .ofac-email-fields
+        }
 
-            $html .= '<div class="ofac-reply-actions">';
+        // Action buttons
+        $html .= '<div class="ofac-reply-actions">';
+        $html .= '<button type="button" class="button ofac-add-note">';
+        $html .= '<span class="dashicons dashicons-admin-comments" style="vertical-align:middle;margin-right:4px;"></span>';
+        $html .= esc_html__( 'Ajouter une note', 'anythingllm-chatbot' );
+        $html .= '</button>';
+
+        if ( $reply_email ) {
             $html .= '<button type="button" class="button button-primary ofac-send-reply">';
-            $html .= '<span class="dashicons dashicons-email" style="vertical-align: middle; margin-right: 4px;"></span>';
-            $html .= esc_html__( 'Envoyer l\'email', 'anythingllm-chatbot' );
+            $html .= '<span class="dashicons dashicons-email" style="vertical-align:middle;margin-right:4px;"></span>';
+            $html .= esc_html__( 'Envoyer par email', 'anythingllm-chatbot' );
             $html .= '</button>';
-            $html .= '<button type="button" class="button ofac-generate-draft" data-id="' . esc_attr( $conversation_id ) . '">';
-            $html .= esc_html__( 'Régénérer le brouillon', 'anythingllm-chatbot' );
-            $html .= '</button>';
-            $html .= '</div>';
-            $html .= '</div>'; // .ofac-reply-form
-            $html .= '</div>'; // .ofac-reply-section
         }
 
-        // Display reply history if a callback request exists
-        if ( $callback_request ) {
-            $replies = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT * FROM {$wpdb->prefix}ofac_ticket_replies WHERE request_id = %d ORDER BY created_at DESC",
-                    $callback_request->id
-                )
-            );
-
-            if ( ! empty( $replies ) ) {
-                $html .= '<div class="ofac-reply-history">';
-                $html .= '<h3 class="ofac-reply-history-title">';
-                $html .= '<span class="dashicons dashicons-email-alt" style="vertical-align: middle; margin-right: 6px;"></span>';
-                $html .= esc_html__( 'Historique des réponses envoyées', 'anythingllm-chatbot' );
-                $html .= ' <span class="ofac-badge ofac-badge--info">' . count( $replies ) . '</span>';
-                $html .= '</h3>';
-
-                foreach ( $replies as $reply ) {
-                    $reply_user = get_userdata( $reply->user_id );
-                    $author_name = $reply_user ? $reply_user->display_name : __( 'Utilisateur supprimé', 'anythingllm-chatbot' );
-
-                    $html .= '<div class="ofac-reply-item">';
-                    $html .= '<div class="ofac-reply-item-header">';
-                    $html .= '<strong>' . esc_html( $author_name ) . '</strong>';
-                    $html .= '<span class="ofac-reply-item-date">' . esc_html( wp_date( 'd/m/Y H:i', strtotime( $reply->created_at ) ) ) . '</span>';
-                    if ( $reply->email_sent ) {
-                        $html .= '<span class="ofac-badge ofac-badge--success">' . esc_html__( 'Envoyé', 'anythingllm-chatbot' ) . '</span>';
-                    }
-                    $html .= '</div>';
-                    $html .= '<div class="ofac-reply-item-subject">';
-                    $html .= '<strong>' . esc_html__( 'Sujet', 'anythingllm-chatbot' ) . ' :</strong> ' . esc_html( $reply->subject );
-                    $html .= '</div>';
-                    $html .= '<div class="ofac-reply-item-body">' . wp_kses_post( nl2br( $reply->body ) ) . '</div>';
-                    $html .= '</div>';
-                }
-
-                $html .= '</div>'; // .ofac-reply-history
-            }
-        }
+        $html .= '</div>'; // .ofac-reply-actions
+        $html .= '</div>'; // .ofac-thread-form
+        $html .= '</div>'; // .ofac-thread-actions
 
         wp_send_json_success( array( 'html' => $html ) );
     }
@@ -537,5 +545,124 @@ class OFAC_Admin_Logs {
             __( '%d conversation(s) supprimée(s).', 'anythingllm-chatbot' ),
             $deleted
         ) );
+    }
+
+    /**
+     * Parse Markdown text into HTML for bot messages display.
+     * Mirrors the chatbot JS parseMarkdown() with same CSS classes.
+     *
+     * @param string $text Raw markdown text
+     * @return string HTML
+     */
+    private function parse_markdown( $text ) {
+        if ( empty( $text ) ) {
+            return '';
+        }
+
+        $text = esc_html( $text );
+        $lines = explode( "\n", $text );
+        $result = array();
+        $in_list = false;
+        $list_type = '';
+
+        foreach ( $lines as $line ) {
+            // Headings: # to ######
+            if ( preg_match( '/^(#{1,6})\s+(.+)$/', $line, $m ) ) {
+                if ( $in_list ) {
+                    $result[] = $list_type === 'ul' ? '</ul>' : '</ol>';
+                    $in_list = false;
+                }
+                $level = strlen( $m[1] );
+                $result[] = sprintf( '<h%d class="ofac-md-heading">%s</h%d>', $level, $this->inline_format( $m[2] ), $level );
+                continue;
+            }
+
+            // Horizontal rule: ---, ***, ___
+            if ( preg_match( '/^\s*[-*_]{3,}\s*$/', $line ) ) {
+                if ( $in_list ) {
+                    $result[] = $list_type === 'ul' ? '</ul>' : '</ol>';
+                    $in_list = false;
+                }
+                $result[] = '<hr class="ofac-md-hr">';
+                continue;
+            }
+
+            // Blockquote: > text
+            if ( preg_match( '/^&gt;\s?(.*)$/', $line, $m ) ) {
+                if ( $in_list ) {
+                    $result[] = $list_type === 'ul' ? '</ul>' : '</ol>';
+                    $in_list = false;
+                }
+                $result[] = '<blockquote class="ofac-md-blockquote">' . $this->inline_format( $m[1] ) . '</blockquote>';
+                continue;
+            }
+
+            // Unordered list: - item, * item, + item
+            if ( preg_match( '/^\s*[-*+]\s+(.+)$/', $line, $m ) ) {
+                if ( ! $in_list || $list_type !== 'ul' ) {
+                    if ( $in_list ) {
+                        $result[] = $list_type === 'ul' ? '</ul>' : '</ol>';
+                    }
+                    $result[] = '<ul class="ofac-md-list">';
+                    $in_list = true;
+                    $list_type = 'ul';
+                }
+                $result[] = '<li>' . $this->inline_format( $m[1] ) . '</li>';
+                continue;
+            }
+
+            // Ordered list: 1. item
+            if ( preg_match( '/^\s*\d+\.\s+(.+)$/', $line, $m ) ) {
+                if ( ! $in_list || $list_type !== 'ol' ) {
+                    if ( $in_list ) {
+                        $result[] = $list_type === 'ul' ? '</ul>' : '</ol>';
+                    }
+                    $result[] = '<ol class="ofac-md-list">';
+                    $in_list = true;
+                    $list_type = 'ol';
+                }
+                $result[] = '<li>' . $this->inline_format( $m[1] ) . '</li>';
+                continue;
+            }
+
+            // Close list if we're no longer in a list item
+            if ( $in_list ) {
+                $result[] = $list_type === 'ul' ? '</ul>' : '</ol>';
+                $in_list = false;
+            }
+
+            // Empty line
+            if ( trim( $line ) === '' ) {
+                continue;
+            }
+
+            // Normal paragraph
+            $result[] = '<p class="ofac-md-paragraph">' . $this->inline_format( $line ) . '</p>';
+        }
+
+        // Close any open list
+        if ( $in_list ) {
+            $result[] = $list_type === 'ul' ? '</ul>' : '</ol>';
+        }
+
+        return implode( "\n", $result );
+    }
+
+    /**
+     * Apply inline Markdown formatting (bold, italic, strikethrough, links).
+     *
+     * @param string $text Escaped text
+     * @return string
+     */
+    private function inline_format( $text ) {
+        // Bold: **text**
+        $text = preg_replace( '/\*\*([^*]+)\*\*/', '<strong>$1</strong>', $text );
+        // Italic: *text*
+        $text = preg_replace( '/\*([^*]+)\*/', '<em>$1</em>', $text );
+        // Strikethrough: ~~text~~
+        $text = preg_replace( '/~~([^~]+)~~/', '<del>$1</del>', $text );
+        // Inline code: `text`
+        $text = preg_replace( '/`([^`]+)`/', '<code class="ofac-inline-code">$1</code>', $text );
+        return $text;
     }
 }

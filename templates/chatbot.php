@@ -234,25 +234,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                 </h3>
                 <form id="ofac-callback-form" class="ofac-callback-form">
                     <div class="ofac-form-group">
-                        <label for="ofac-callback-email" class="ofac-form-label">
-                            <?php esc_html_e( 'Email', 'anythingllm-chatbot' ); ?> <span aria-hidden="true">*</span>
-                        </label>
-                        <input type="email"
-                               id="ofac-callback-email"
-                               name="callback_email"
-                               class="ofac-form-input"
-                               required
-                               aria-required="true"
-                               placeholder="votre@email.com">
-                    </div>
-                    <div class="ofac-form-group">
                         <label for="ofac-callback-phone" class="ofac-form-label">
-                            <?php esc_html_e( 'Téléphone (optionnel)', 'anythingllm-chatbot' ); ?>
+                            <?php esc_html_e( 'Téléphone', 'anythingllm-chatbot' ); ?> <span aria-hidden="true">*</span>
                         </label>
                         <input type="tel"
                                id="ofac-callback-phone"
                                name="callback_phone"
                                class="ofac-form-input"
+                               required
+                               aria-required="true"
                                placeholder="06 12 34 56 78">
                     </div>
                     <div class="ofac-form-group">

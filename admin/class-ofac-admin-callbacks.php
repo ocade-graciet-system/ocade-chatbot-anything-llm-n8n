@@ -208,7 +208,11 @@ class OFAC_Admin_Callbacks {
                                         <?php echo $this->render_status_badge( $item->status ); ?>
                                     </td>
                                     <td class="column-email">
-                                        <strong><a href="mailto:<?php echo esc_attr( $item->email ); ?>"><?php echo esc_html( $item->email ); ?></a></strong>
+                                        <?php if ( $item->email ) : ?>
+                                            <strong><a href="mailto:<?php echo esc_attr( $item->email ); ?>"><?php echo esc_html( $item->email ); ?></a></strong>
+                                        <?php else : ?>
+                                            <span class="ofac-muted">—</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="column-phone">
                                         <?php if ( $item->phone ) : ?>

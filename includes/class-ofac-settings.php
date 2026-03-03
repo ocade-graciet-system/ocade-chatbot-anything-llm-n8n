@@ -317,6 +317,12 @@ class OFAC_Settings {
                         'description' => __( 'Adresse email qui recevra les demandes de rappel avec le résumé de conversation', 'anythingllm-chatbot' ),
                         'default'     => '',
                     ),
+                    'ofac_reply_to_email' => array(
+                        'type'        => 'email',
+                        'label'       => __( 'Email de réponse (Reply-To)', 'anythingllm-chatbot' ),
+                        'description' => __( 'Adresse email utilisée comme Reply-To quand vous répondez à un client. Si le client clique sur "Répondre", son email sera envoyé à cette adresse. Si vide, l\'email de réception des demandes sera utilisé.', 'anythingllm-chatbot' ),
+                        'default'     => '',
+                    ),
                     'ofac_rag_draft_prompt' => array(
                         'type'        => 'textarea',
                         'label'       => __( 'Prompt de génération du brouillon', 'anythingllm-chatbot' ),

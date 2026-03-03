@@ -128,7 +128,6 @@
                 callbackBtn: document.getElementById('ofac-callback-btn'),
                 callbackOverlay: document.getElementById('ofac-callback-overlay'),
                 callbackForm: document.getElementById('ofac-callback-form'),
-                callbackEmail: document.getElementById('ofac-callback-email'),
                 callbackPhone: document.getElementById('ofac-callback-phone'),
                 callbackMessage: document.getElementById('ofac-callback-message'),
                 callbackSubmit: document.getElementById('ofac-callback-submit'),
@@ -1448,11 +1447,6 @@
          * Ouvre l'overlay de callback avec pre-remplissage
          */
         showCallbackOverlay() {
-            // Pre-remplir l'email si l'utilisateur est connecte
-            if (this.elements.callbackEmail && this.config.user_email) {
-                this.elements.callbackEmail.value = this.config.user_email;
-            }
-
             // Reset le formulaire et l'etat
             if (this.elements.callbackSuccess) {
                 this.elements.callbackSuccess.style.display = 'none';
@@ -1468,11 +1462,10 @@
          * Soumet la demande de callback
          */
         async submitCallbackRequest() {
-            const email = this.elements.callbackEmail ? this.elements.callbackEmail.value.trim() : '';
             const phone = this.elements.callbackPhone ? this.elements.callbackPhone.value.trim() : '';
             const message = this.elements.callbackMessage ? this.elements.callbackMessage.value.trim() : '';
 
-            if (!email || !message) return;
+            if (!phone || !message) return;
 
             const submitBtn = this.elements.callbackSubmit;
             const form = this.elements.callbackForm;
@@ -1493,7 +1486,6 @@
                 formData.append('action', 'ofac_request_callback');
                 formData.append('nonce', this.config.nonce);
                 formData.append('session_id', this.sessionId);
-                formData.append('email', email);
                 formData.append('phone', phone);
                 formData.append('message', message);
 

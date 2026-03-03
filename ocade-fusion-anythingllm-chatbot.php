@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'OFAC_VERSION', '1.0.0' );
+define( 'OFAC_VERSION', '1.1.0' );
 define( 'OFAC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OFAC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OFAC_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -334,10 +334,22 @@ final class OFAC_Plugin {
      */
     private function maybe_create_tables() {
         $db_version = get_option( 'ofac_db_version', '0' );
-        
+
         if ( version_compare( $db_version, OFAC_VERSION, '<' ) ) {
             $this->create_tables();
             $this->set_default_options();
+
+            // Backfill conversation_id on existing ticket replies (v1.1.0)
+            if ( version_compare( $db_version, '1.1.0', '<' ) ) {
+                global $wpdb;
+                $wpdb->query(
+                    "UPDATE {$wpdb->prefix}ofac_ticket_replies tr
+                     INNER JOIN {$wpdb->prefix}ofac_callback_requests cr ON tr.request_id = cr.id
+                     SET tr.conversation_id = cr.conversation_id
+                     WHERE (tr.conversation_id = 0 OR tr.conversation_id IS NULL)
+                       AND cr.conversation_id > 0"
+                );
+            }
         }
     }
 
@@ -426,17 +438,20 @@ final class OFAC_Plugin {
             KEY status (status)
         ) $charset_collate;";
 
-        // Ticket replies table (historique des reponses support)
+        // Ticket replies table (historique des reponses support + notes internes)
         $sql[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}ofac_ticket_replies (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            request_id bigint(20) unsigned NOT NULL,
+            request_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            conversation_id bigint(20) unsigned NOT NULL DEFAULT 0,
             user_id bigint(20) unsigned NOT NULL,
-            subject varchar(255) NOT NULL,
+            type varchar(20) DEFAULT 'email',
+            subject varchar(255) NOT NULL DEFAULT '',
             body longtext NOT NULL,
             email_sent tinyint(1) DEFAULT 0,
             created_at datetime NOT NULL,
             PRIMARY KEY (id),
             KEY request_id (request_id),
+            KEY conversation_id (conversation_id),
             KEY created_at (created_at)
         ) $charset_collate;";
 

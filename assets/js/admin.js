@@ -749,11 +749,11 @@
             // Select all
             $('#cb-select-all').on('change', this.selectAll.bind(this));
 
-            // Generate draft reply
-            $(document).on('click', '.ofac-generate-draft', this.generateDraft.bind(this));
+            // Add internal note
+            $(document).on('click', '.ofac-add-note', this.addComment.bind(this));
 
-            // Send reply email
-            $(document).on('click', '.ofac-send-reply', this.sendReply.bind(this));
+            // Send reply email (toggle fields then send)
+            $(document).on('click', '.ofac-send-reply', this.toggleEmailAndSend.bind(this));
 
             // Close modal
             $(document).on('click', '.ofac-modal-close, .ofac-modal', function(e) {
@@ -919,69 +919,91 @@
         },
 
         /**
-         * Generate draft reply via RAG
+         * Add internal note/comment to thread
          */
-        generateDraft: function(e) {
+        addComment: function(e) {
             e.preventDefault();
 
-            const $btn = $(e.currentTarget);
-            const conversationId = $btn.data('id');
-            const $section = $btn.closest('.ofac-reply-section');
-            const $textarea = $section.find('.ofac-reply-body');
-            const originalText = $btn.text();
+            var $btn = $(e.currentTarget);
+            var $actions = $btn.closest('.ofac-thread-actions');
+            var conversationId = $actions.data('conversation-id');
+            var requestId = $actions.data('request-id');
+            var body = $actions.find('.ofac-reply-body').val();
 
-            $btn.prop('disabled', true).html('<span class="ofac-spinner"></span> Génération en cours...');
+            if (!body || !body.trim()) {
+                OFACAdmin.showNotice('error', 'Veuillez saisir un message.');
+                return;
+            }
 
+            var originalHtml = $btn.html();
+            $btn.prop('disabled', true).html('<span class="ofac-spinner"></span> Enregistrement...');
+
+            var self = this;
             $.ajax({
                 url: ofacAdmin.ajaxUrl,
                 type: 'POST',
                 data: {
-                    action: 'ofac_generate_reply_draft',
+                    action: 'ofac_add_thread_comment',
                     nonce: ofacAdmin.nonce,
-                    conversation_id: conversationId
+                    conversation_id: conversationId,
+                    request_id: requestId,
+                    body: body
                 },
                 success: function(response) {
-                    if (response.success && response.data.draft) {
-                        $textarea.val(response.data.draft);
-                        OFACAdmin.showNotice('success', 'Brouillon généré avec succès.');
+                    if (response.success) {
+                        OFACAdmin.showNotice('success', 'Note ajoutee.');
+                        self.openConversation(conversationId);
                     } else {
-                        OFACAdmin.showNotice('error', response.data?.message || 'Erreur lors de la génération du brouillon.');
+                        OFACAdmin.showNotice('error', response.data?.message || 'Erreur.');
+                        $btn.prop('disabled', false).html(originalHtml);
                     }
                 },
                 error: function() {
-                    OFACAdmin.showNotice('error', 'Erreur lors de la génération du brouillon.');
-                },
-                complete: function() {
-                    $btn.prop('disabled', false).text(originalText);
+                    OFACAdmin.showNotice('error', 'Erreur lors de l\'enregistrement.');
+                    $btn.prop('disabled', false).html(originalHtml);
                 }
             });
         },
 
         /**
-         * Send reply email
+         * Toggle email fields and send email
+         * First click: show email fields (destinataire, sujet)
+         * Second click: validate and send
          */
-        sendReply: function(e) {
+        toggleEmailAndSend: function(e) {
             e.preventDefault();
 
-            const $btn = $(e.currentTarget);
-            const $section = $btn.closest('.ofac-reply-section');
-            const to = $section.find('.ofac-reply-to').val();
-            const subject = $section.find('.ofac-reply-subject').val();
-            const body = $section.find('.ofac-reply-body').val();
-            const requestId = $section.data('request-id');
+            var $btn = $(e.currentTarget);
+            var $actions = $btn.closest('.ofac-thread-actions');
+            var $emailFields = $actions.find('.ofac-email-fields');
 
-            if (!to || !subject || !body) {
+            // First click: show email fields
+            if (!$emailFields.is(':visible')) {
+                $emailFields.slideDown(200);
+                $btn.html('<span class="dashicons dashicons-email" style="vertical-align:middle;margin-right:4px;"></span> Confirmer l\'envoi');
+                return;
+            }
+
+            // Second click: validate and send
+            var conversationId = $actions.data('conversation-id');
+            var requestId = $actions.data('request-id');
+            var to = $actions.find('.ofac-reply-to').val();
+            var subject = $actions.find('.ofac-reply-subject').val();
+            var body = $actions.find('.ofac-reply-body').val();
+
+            if (!to || !subject || !body || !body.trim()) {
                 OFACAdmin.showNotice('error', 'Veuillez remplir tous les champs.');
                 return;
             }
 
-            if (!confirm('Envoyer cet email à ' + to + ' ?')) {
+            if (!confirm('Envoyer cet email a ' + to + ' ?')) {
                 return;
             }
 
-            const originalText = $btn.text();
+            var originalHtml = $btn.html();
             $btn.prop('disabled', true).html('<span class="ofac-spinner"></span> Envoi en cours...');
 
+            var self = this;
             $.ajax({
                 url: ofacAdmin.ajaxUrl,
                 type: 'POST',
@@ -991,25 +1013,21 @@
                     to: to,
                     subject: subject,
                     body: body,
-                    request_id: requestId
+                    request_id: requestId,
+                    conversation_id: conversationId
                 },
                 success: function(response) {
                     if (response.success) {
-                        OFACAdmin.showNotice('success', 'Email envoyé avec succès.');
-                        // Update badge status
-                        $section.find('.ofac-badge').removeClass('ofac-badge--warning').addClass('ofac-badge--success').text('Répondu');
-                        $btn.html('<span class="dashicons dashicons-yes" style="vertical-align:middle;margin-right:4px;"></span> Envoyé !');
-                        setTimeout(function() {
-                            $btn.prop('disabled', false).text(originalText);
-                        }, 3000);
+                        OFACAdmin.showNotice('success', 'Email envoye.');
+                        self.openConversation(conversationId);
                     } else {
                         OFACAdmin.showNotice('error', response.data?.message || 'Erreur lors de l\'envoi.');
-                        $btn.prop('disabled', false).text(originalText);
+                        $btn.prop('disabled', false).html(originalHtml);
                     }
                 },
                 error: function() {
                     OFACAdmin.showNotice('error', 'Erreur lors de l\'envoi.');
-                    $btn.prop('disabled', false).text(originalText);
+                    $btn.prop('disabled', false).html(originalHtml);
                 }
             });
         }
