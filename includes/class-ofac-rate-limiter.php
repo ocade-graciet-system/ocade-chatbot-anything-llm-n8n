@@ -24,6 +24,13 @@ class OFAC_Rate_Limiter {
     const TRANSIENT_PREFIX = 'ofac_rate_';
 
     /**
+     * Transient prefix for hourly limits
+     *
+     * @var string
+     */
+    const HOURLY_TRANSIENT_PREFIX = 'ofac_rate_h_';
+
+    /**
      * Rate limit (requests per minute)
      *
      * @var int
@@ -31,55 +38,84 @@ class OFAC_Rate_Limiter {
     private $limit;
 
     /**
-     * Window duration in seconds
+     * Rate limit (requests per hour)
+     *
+     * @var int
+     */
+    private $hourly_limit;
+
+    /**
+     * Window duration in seconds (per minute)
      *
      * @var int
      */
     private $window = 60;
 
     /**
+     * Hourly window duration in seconds
+     *
+     * @var int
+     */
+    private $hourly_window = 3600;
+
+    /**
      * Constructor
      */
     public function __construct() {
-        $settings    = OFAC_Settings::get_instance();
-        $this->limit = $settings->get( 'ofac_rate_limit', 30 );
+        $settings           = OFAC_Settings::get_instance();
+        $this->limit        = $settings->get( 'ofac_rate_limit', 30 );
+        $this->hourly_limit = $settings->get( 'ofac_rate_limit_hourly', 100 );
     }
 
     /**
-     * Check if request is allowed
+     * Check if request is allowed (per minute AND per hour)
      *
      * @return bool
      */
     public function check() {
+        // Verifier la limite par minute
         $key   = $this->get_key();
         $count = $this->get_count( $key );
 
         if ( $count >= $this->limit ) {
-            /**
-             * Fires when rate limit is exceeded
-             *
-             * @since 1.0.0
-             * @param string $key   Rate limit key
-             * @param int    $count Current count
-             * @param int    $limit Rate limit
-             */
+            /** @since 1.0.0 */
             do_action( 'ofac_rate_limit_exceeded', $key, $count, $this->limit );
-
             return false;
         }
 
-        $this->increment( $key );
+        // Verifier la limite par heure
+        $hourly_key   = $this->get_hourly_key();
+        $hourly_count = $this->get_count( $hourly_key );
+
+        if ( $hourly_count >= $this->hourly_limit ) {
+            /** @since 1.0.8 */
+            do_action( 'ofac_hourly_rate_limit_exceeded', $hourly_key, $hourly_count, $this->hourly_limit );
+            return false;
+        }
+
+        $this->increment( $key, $this->window );
+        $this->increment( $hourly_key, $this->hourly_window );
         return true;
     }
 
     /**
-     * Get rate limit key for current request
+     * Get rate limit key (per minute) for current request
      *
      * @return string
      */
     private function get_key() {
         $ip = $this->get_client_ip();
         return self::TRANSIENT_PREFIX . md5( $ip );
+    }
+
+    /**
+     * Get hourly rate limit key for current request
+     *
+     * @return string
+     */
+    private function get_hourly_key() {
+        $ip = $this->get_client_ip();
+        return self::HOURLY_TRANSIENT_PREFIX . md5( $ip );
     }
 
     /**
@@ -101,9 +137,10 @@ class OFAC_Rate_Limiter {
     /**
      * Increment count for key
      *
-     * @param string $key Rate limit key
+     * @param string $key    Rate limit key
+     * @param int    $window Window duration in seconds
      */
-    private function increment( $key ) {
+    private function increment( $key, $window = 60 ) {
         $data = get_transient( $key );
 
         if ( $data === false ) {
@@ -115,11 +152,11 @@ class OFAC_Rate_Limiter {
             $data['count']++;
         }
 
-        set_transient( $key, $data, $this->window );
+        set_transient( $key, $data, $window );
     }
 
     /**
-     * Get remaining requests
+     * Get remaining requests (per minute)
      *
      * @return int
      */
@@ -131,7 +168,19 @@ class OFAC_Rate_Limiter {
     }
 
     /**
-     * Get time until reset
+     * Get remaining requests (per hour)
+     *
+     * @return int
+     */
+    public function get_remaining_hourly() {
+        $key   = $this->get_hourly_key();
+        $count = $this->get_count( $key );
+
+        return max( 0, $this->hourly_limit - $count );
+    }
+
+    /**
+     * Get time until reset (per minute)
      *
      * @return int Seconds until reset
      */
@@ -148,11 +197,28 @@ class OFAC_Rate_Limiter {
     }
 
     /**
+     * Get time until hourly reset
+     *
+     * @return int Seconds until reset
+     */
+    public function get_hourly_reset_time() {
+        $key  = $this->get_hourly_key();
+        $data = get_transient( $key );
+
+        if ( $data === false ) {
+            return 0;
+        }
+
+        $elapsed = time() - $data['started'];
+        return max( 0, $this->hourly_window - $elapsed );
+    }
+
+    /**
      * Reset rate limit for current IP
      */
     public function reset() {
-        $key = $this->get_key();
-        delete_transient( $key );
+        delete_transient( $this->get_key() );
+        delete_transient( $this->get_hourly_key() );
     }
 
     /**
@@ -187,9 +253,12 @@ class OFAC_Rate_Limiter {
      */
     public function get_headers() {
         return array(
-            'X-RateLimit-Limit'     => $this->limit,
-            'X-RateLimit-Remaining' => $this->get_remaining(),
-            'X-RateLimit-Reset'     => time() + $this->get_reset_time(),
+            'X-RateLimit-Limit'          => $this->limit,
+            'X-RateLimit-Remaining'      => $this->get_remaining(),
+            'X-RateLimit-Reset'          => time() + $this->get_reset_time(),
+            'X-RateLimit-Hourly-Limit'     => $this->hourly_limit,
+            'X-RateLimit-Hourly-Remaining' => $this->get_remaining_hourly(),
+            'X-RateLimit-Hourly-Reset'     => time() + $this->get_hourly_reset_time(),
         );
     }
 }

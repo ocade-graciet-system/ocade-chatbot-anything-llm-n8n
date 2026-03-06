@@ -400,7 +400,7 @@ class OFAC_Email {
 
         // Header
         $html .= '<div style="background: #2563eb; color: white; padding: 20px; border-radius: 8px 8px 0 0;">';
-        $html .= '<h2 style="margin: 0; font-size: 18px;">&#128222; ' . esc_html__( 'Nouvelle demande de rappel', 'anythingllm-chatbot' ) . '</h2>';
+        $html .= '<h2 style="margin: 0; font-size: 18px;">' . esc_html__( 'Nouvelle demande de rappel', 'anythingllm-chatbot' ) . '</h2>';
         $html .= '<p style="margin: 5px 0 0; opacity: 0.9; font-size: 14px;">' . esc_html( $data['site_name'] ) . '</p>';
         $html .= '</div>';
 

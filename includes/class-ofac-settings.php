@@ -337,11 +337,19 @@ class OFAC_Settings {
                 'fields' => array(
                     'ofac_rate_limit' => array(
                         'type'        => 'number',
-                        'label'       => __( 'Limite de requêtes', 'anythingllm-chatbot' ),
+                        'label'       => __( 'Limite de requêtes par minute', 'anythingllm-chatbot' ),
                         'description' => __( 'Nombre maximum de requêtes par minute par IP', 'anythingllm-chatbot' ),
                         'default'     => 10,
                         'min'         => 5,
                         'max'         => 100,
+                    ),
+                    'ofac_rate_limit_hourly' => array(
+                        'type'        => 'number',
+                        'label'       => __( 'Limite de requêtes par heure', 'anythingllm-chatbot' ),
+                        'description' => __( 'Nombre maximum de requêtes par heure par IP', 'anythingllm-chatbot' ),
+                        'default'     => 100,
+                        'min'         => 10,
+                        'max'         => 1000,
                     ),
                     'ofac_enable_honeypot' => array(
                         'type'        => 'checkbox',
@@ -505,6 +513,7 @@ class OFAC_Settings {
             'ofac_max_file_size'        => 5,
             'ofac_allowed_file_types'   => 'jpg,jpeg,png,gif,pdf,doc,docx,txt',
             'ofac_rate_limit'           => 30,
+            'ofac_rate_limit_hourly'    => 100,
             'ofac_cache_duration'       => 3600,
             'ofac_data_retention_days'  => 30,
             'ofac_privacy_policy_url'   => '',

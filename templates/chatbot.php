@@ -104,15 +104,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                 </button>
                 <?php endif; ?>
                 <button type="button"
-                        id="ofac-export"
-                        class="ofac-header-btn ofac-btn-export"
-                        aria-label="<?php echo esc_attr( $accessibility->get_label( 'export_chat' ) ); ?>"
-                        title="<?php esc_attr_e( 'Exporter', 'anythingllm-chatbot' ); ?>">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
-                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-                    </svg>
-                </button>
-                <button type="button"
                         id="ofac-reset"
                         class="ofac-header-btn ofac-btn-reset"
                         aria-label="<?php echo esc_attr( $accessibility->get_label( 'reset_chat' ) ); ?>"
