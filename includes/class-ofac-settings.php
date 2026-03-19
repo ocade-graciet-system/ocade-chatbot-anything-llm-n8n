@@ -143,6 +143,20 @@ class OFAC_Settings {
                         'default'     => array(),
                         'options'     => 'wp_roles',
                     ),
+                    'ofac_auto_open' => array(
+                        'type'        => 'checkbox',
+                        'label'       => __( 'Ouverture automatique', 'anythingllm-chatbot' ),
+                        'description' => __( 'Ouvrir automatiquement le chatbot au chargement de la page', 'anythingllm-chatbot' ),
+                        'default'     => false,
+                    ),
+                    'ofac_auto_open_delay' => array(
+                        'type'        => 'number',
+                        'label'       => __( 'Délai d\'ouverture automatique (secondes)', 'anythingllm-chatbot' ),
+                        'description' => __( 'Délai en secondes avant l\'ouverture automatique du chatbot. 0 = ouverture immédiate.', 'anythingllm-chatbot' ),
+                        'default'     => 0,
+                        'min'         => 0,
+                        'max'         => 30,
+                    ),
                 ),
             ),
             // Appearance Settings
@@ -199,6 +213,14 @@ class OFAC_Settings {
                         'label'       => __( 'Avatar utilisateur', 'anythingllm-chatbot' ),
                         'description' => __( 'Image avatar pour les messages utilisateur', 'anythingllm-chatbot' ),
                         'default'     => '',
+                    ),
+                    'ofac_header_avatar_size' => array(
+                        'type'        => 'number',
+                        'label'       => __( 'Taille de l\'image du bandeau', 'anythingllm-chatbot' ),
+                        'description' => __( 'Taille en pixels de l\'image affichée dans l\'en-tête du chatbot (bandeau). L\'image reste centrée verticalement.', 'anythingllm-chatbot' ),
+                        'default'     => 48,
+                        'min'         => 24,
+                        'max'         => 120,
                     ),
                 ),
             ),
@@ -538,6 +560,9 @@ class OFAC_Settings {
             'ofac_logs_roles'           => array( 'administrator', 'support_chatbot' ),
             'ofac_callbacks_roles'      => array( 'administrator', 'support_chatbot' ),
             'ofac_stats_roles'          => array( 'administrator', 'support_chatbot' ),
+            'ofac_header_avatar_size'   => 48,
+            'ofac_auto_open'            => false,
+            'ofac_auto_open_delay'      => 0,
         );
 
         foreach ( $setting_keys as $key => $default ) {
@@ -752,6 +777,9 @@ class OFAC_Settings {
             'ofac_contact_phone',
             'ofac_enable_callback_btn',
             'ofac_callback_btn_label',
+            'ofac_header_avatar_size',
+            'ofac_auto_open',
+            'ofac_auto_open_delay',
         );
 
         $settings = array();
