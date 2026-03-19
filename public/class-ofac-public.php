@@ -256,6 +256,8 @@ class OFAC_Public {
         $width_desktop = $this->settings->get( 'ofac_width_desktop', 400 );
         $height_desktop = $this->settings->get( 'ofac_height_desktop', 600 );
 
+        $header_avatar_size = intval( $this->settings->get( 'ofac_header_avatar_size', 48 ) );
+
         $bot_avatar_url = $bot_avatar ? wp_get_attachment_url( $bot_avatar ) : '';
         $user_avatar_url = $user_avatar ? wp_get_attachment_url( $user_avatar ) : '';
 
@@ -275,7 +277,7 @@ class OFAC_Public {
 
         // Apply custom CSS variables
         $style = sprintf(
-            '--ofac-primary: %s; --ofac-primary-hover: %s; --ofac-text-inverse: %s; --ofac-modal-width: %dpx; --ofac-modal-height: %dpx; --ofac-bg-message-user: %s; --ofac-border-focus: %s; --ofac-text-link: %s;',
+            '--ofac-primary: %s; --ofac-primary-hover: %s; --ofac-text-inverse: %s; --ofac-modal-width: %dpx; --ofac-modal-height: %dpx; --ofac-bg-message-user: %s; --ofac-border-focus: %s; --ofac-text-link: %s; --ofac-avatar-size: %dpx;',
             esc_attr( $primary_color ),
             esc_attr( $this->adjust_brightness( $primary_color, -20 ) ),
             esc_attr( $text_color ),
@@ -283,7 +285,8 @@ class OFAC_Public {
             intval( $height_desktop ),
             esc_attr( $primary_color ),
             esc_attr( $primary_color ),
-            esc_attr( $primary_color )
+            esc_attr( $primary_color ),
+            $header_avatar_size
         );
 
         include OFAC_PLUGIN_DIR . 'templates/chatbot.php';

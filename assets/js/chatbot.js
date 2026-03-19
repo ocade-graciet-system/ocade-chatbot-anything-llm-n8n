@@ -96,6 +96,32 @@
 
             // Déclencher l'événement d'initialisation
             this.trigger('ofac:init', { chatbot: this });
+
+            // Ouverture automatique (une seule fois par session, pas en mode inline)
+            this.handleAutoOpen();
+        }
+
+        /**
+         * Gère l'ouverture automatique du chatbot
+         */
+        handleAutoOpen() {
+            const isInline = this.elements.container && this.elements.container.dataset.inline === 'true';
+            if (isInline) return;
+
+            if (!this.config.settings.auto_open) return;
+
+            // Ne s'ouvrir qu'une seule fois par session
+            const sessionKey = 'ofac_auto_opened';
+            if (sessionStorage.getItem(sessionKey)) return;
+
+            const delay = (parseInt(this.config.settings.auto_open_delay, 10) || 0) * 1000;
+
+            setTimeout(() => {
+                if (!this.isOpen) {
+                    sessionStorage.setItem(sessionKey, '1');
+                    this.open();
+                }
+            }, delay);
         }
 
         /**
