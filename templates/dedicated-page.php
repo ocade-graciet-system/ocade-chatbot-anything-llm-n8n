@@ -63,17 +63,19 @@ if ( ! defined( 'ABSPATH' ) ) {
             overflow: auto;
         }
         .ofac-dedicated-body .ofac-inline .ofac-modal,
-        .ofac-dedicated-body .ofac-inline #ofac-modal {
-            position: fixed;
-            top: 36px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: calc(100% - 36px);
-            max-width: 100%;
-            max-height: calc(100% - 36px);
-            border-radius: 0;
+        .ofac-dedicated-body .ofac-inline #ofac-modal,
+        .ofac-dedicated-body .ofac-modal,
+        .ofac-dedicated-body .ofac-modal--fullscreen {
+            position: fixed !important;
+            top: 36px !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            height: calc(100% - 36px) !important;
+            max-width: 100% !important;
+            max-height: calc(100% - 36px) !important;
+            border-radius: 0 !important;
         }
     </style>
 </head>
