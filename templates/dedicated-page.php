@@ -23,61 +23,67 @@ if ( ! defined( 'ABSPATH' ) ) {
             height: 100%;
             overflow: hidden;
         }
-        .ofac-dedicated-body .ofac-shortcode-wrapper {
-            width: 100vw;
-            height: 100vh;
-        }
-        .ofac-dedicated-body:has(.ofac-access-denied) {
-            overflow: auto;
-        }
-        .ofac-dedicated-home-link {
-            position: fixed;
-            top: 12px;
-            left: 12px;
-            z-index: 999999;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 14px;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(8px);
-            color: #fff;
-            text-decoration: none;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            font-size: 13px;
-            font-weight: 500;
-            border-radius: 20px;
-            transition: background 0.2s;
-        }
-        .ofac-dedicated-home-link:hover {
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
-        }
-        .ofac-dedicated-home-link svg {
-            width: 14px;
-            height: 14px;
-            fill: currentColor;
-        }
-        .ofac-dedicated-body .ofac-inline .ofac-modal,
-        .ofac-dedicated-body .ofac-inline #ofac-modal {
+        .ofac-dedicated-topbar {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
+            z-index: 999999;
+            height: 36px;
+            background: #1e293b;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .ofac-dedicated-topbar__link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .ofac-dedicated-topbar__link:hover {
+            color: #fff;
+        }
+        .ofac-dedicated-topbar__link svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
+        .ofac-dedicated-body .ofac-shortcode-wrapper {
+            width: 100vw;
+            height: calc(100vh - 36px);
+            margin-top: 36px;
+        }
+        .ofac-dedicated-body:has(.ofac-access-denied) {
+            overflow: auto;
+        }
+        .ofac-dedicated-body .ofac-inline .ofac-modal,
+        .ofac-dedicated-body .ofac-inline #ofac-modal {
+            position: fixed;
+            top: 36px;
+            left: 0;
+            right: 0;
             bottom: 0;
             width: 100%;
-            height: 100%;
+            height: calc(100% - 36px);
             max-width: 100%;
-            max-height: 100%;
+            max-height: calc(100% - 36px);
             border-radius: 0;
         }
     </style>
 </head>
 <body class="ofac-dedicated-body">
-<a href="<?php echo esc_url( home_url() ); ?>" class="ofac-dedicated-home-link">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-    <?php esc_html_e( 'Accueil', 'anythingllm-chatbot' ); ?>
-</a>
+<div class="ofac-dedicated-topbar">
+    <a href="<?php echo esc_url( home_url() ); ?>" class="ofac-dedicated-topbar__link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        <?php esc_html_e( 'Retour au site', 'anythingllm-chatbot' ); ?>
+    </a>
+</div>
 <?php
 while ( have_posts() ) {
     the_post();
