@@ -2539,3 +2539,138 @@
     border-color: var(--ofac-primary);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
+
+/* ==========================================================================
+   Inline Mode (Shortcode / Block)
+   ========================================================================== */
+
+/* Hide trigger button in inline mode */
+.ofac-inline .ofac-trigger,
+.ofac-inline .ofac-toggle-btn {
+    display: none !important;
+}
+
+/* Override #ofac-modal { display: none } for inline mode (trigger not in DOM) */
+.ofac-inline #ofac-modal {
+    display: flex;
+}
+
+/* Inline modal: relative positioning (non-fullscreen state) */
+.ofac-inline .ofac-modal {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    max-width: 100%;
+    max-height: none;
+    border-radius: var(--ofac-radius-xl);
+    box-shadow: var(--ofac-shadow-lg);
+}
+
+/* ==========================================================================
+   Dedicated Page Mode (Shortcode Fullscreen)
+   ========================================================================== */
+
+.ofac-shortcode--fullscreen {
+    min-height: 80vh;
+}
+
+.ofac-shortcode--fullscreen .ofac-inline .ofac-modal {
+    height: 80vh;
+}
+
+/* ==========================================================================
+   Access Denied Card
+   ========================================================================== */
+
+.ofac-access-denied {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    background: var(--ofac-bg-secondary);
+    font-family: var(--ofac-font-family);
+}
+
+.ofac-access-denied__card {
+    background: var(--ofac-bg);
+    border: 1px solid var(--ofac-border);
+    border-radius: var(--ofac-radius-xl);
+    padding: var(--ofac-spacing-xl);
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: var(--ofac-shadow-lg);
+}
+
+.ofac-access-denied__avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    margin: 0 auto var(--ofac-spacing-md);
+    background: linear-gradient(135deg, var(--ofac-primary), var(--ofac-primary-hover));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.ofac-access-denied__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ofac-access-denied__avatar svg {
+    width: 36px;
+    height: 36px;
+    fill: var(--ofac-text-inverse);
+}
+
+.ofac-access-denied__title {
+    color: var(--ofac-text);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 var(--ofac-spacing-sm);
+}
+
+.ofac-access-denied__message {
+    color: var(--ofac-text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0 0 var(--ofac-spacing-lg);
+}
+
+.ofac-access-denied__login-btn {
+    display: block;
+    background: linear-gradient(135deg, var(--ofac-primary), var(--ofac-primary-hover));
+    color: var(--ofac-text-inverse);
+    text-decoration: none;
+    padding: var(--ofac-spacing-sm) var(--ofac-spacing-lg);
+    border-radius: var(--ofac-radius-lg);
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: var(--ofac-spacing-md);
+    transition: opacity 0.2s;
+}
+
+.ofac-access-denied__login-btn:hover {
+    opacity: 0.9;
+}
+
+.ofac-access-denied__home-link {
+    color: var(--ofac-text-secondary);
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.ofac-access-denied__home-link:hover {
+    color: var(--ofac-primary);
+}
+
+@media (max-width: 480px) {
+    .ofac-access-denied__card {
+        padding: var(--ofac-spacing-lg) var(--ofac-spacing-md);
+        margin: 0 var(--ofac-spacing-md);
+    }
+}
