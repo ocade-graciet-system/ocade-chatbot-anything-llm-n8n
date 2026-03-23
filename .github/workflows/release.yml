@@ -152,9 +152,13 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: master
       
-      # Étape pour créer une archive .zip du projet
+      # Étape pour créer une archive .zip avec dossier racine (compatible WordPress updater)
       - name: Create zip archive
-        run: zip --symlinks -r ocade-fusion-anythingllm-chatbot.zip . -x ".git/*" -x ".github/*"
+        run: |
+          PLUGIN_DIR="ocade-chatbot-anything-llm-n8n"
+          mkdir -p "/tmp/${PLUGIN_DIR}"
+          rsync -a --exclude='.git' --exclude='.github' --exclude='node_modules' . "/tmp/${PLUGIN_DIR}/"
+          cd /tmp && zip --symlinks -r "${GITHUB_WORKSPACE}/ocade-fusion-anythingllm-chatbot.zip" "${PLUGIN_DIR}/"
       
       # Étape pour publier la release
       - name: Publish release
@@ -162,7 +166,7 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "${{ steps.increment.outputs.version }}"
-          prerelease: true
+          prerelease: false
           title: "${{ steps.increment.outputs.version }}"
           files: |
             ocade-fusion-anythingllm-chatbot.zip

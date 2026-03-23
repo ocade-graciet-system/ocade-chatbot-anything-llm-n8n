@@ -133,6 +133,7 @@ final class OFAC_Plugin {
         require_once OFAC_PLUGIN_DIR . 'includes/class-ofac-logs.php';
         require_once OFAC_PLUGIN_DIR . 'includes/class-ofac-email.php';
         require_once OFAC_PLUGIN_DIR . 'includes/class-ofac-capabilities.php';
+        require_once OFAC_PLUGIN_DIR . 'includes/class-ofac-github-updater.php';
 
         // Admin classes
         if ( is_admin() ) {
@@ -220,6 +221,9 @@ final class OFAC_Plugin {
 
         // Initialize capabilities
         OFAC_Capabilities::get_instance();
+
+        // Initialize GitHub updater
+        OFAC_GitHub_Updater::get_instance();
 
         // Initialize admin
         if ( is_admin() ) {
