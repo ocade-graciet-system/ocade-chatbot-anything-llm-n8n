@@ -81,6 +81,91 @@ class OFAC_Public {
         add_action( 'wp_enqueue_scripts', array( $this, 'register_assets' ) );
         add_action( 'wp_footer', array( $this, 'render_chatbot' ) );
         add_action( 'wp_body_open', array( $this, 'add_skip_link' ) );
+
+        // Dedicated page: ensure page exists + noindex + hide admin bar + custom template
+        if ( 'dedicated' === $this->settings->get( 'ofac_display_mode', 'floating' ) ) {
+            add_action( 'admin_init', array( $this, 'ensure_dedicated_page' ) );
+            add_action( 'wp_head', array( $this, 'maybe_noindex_dedicated_page' ) );
+            add_filter( 'show_admin_bar', array( $this, 'hide_admin_bar_on_dedicated_page' ) );
+            add_filter( 'template_include', array( $this, 'dedicated_page_template' ) );
+        }
+    }
+
+    /**
+     * Ensure dedicated chatbot page exists
+     */
+    public function ensure_dedicated_page() {
+        $page_id = (int) $this->settings->get( 'ofac_dedicated_page_id', 0 );
+
+        // Check if page still exists and is not trashed
+        if ( $page_id && 'publish' === get_post_status( $page_id ) ) {
+            return;
+        }
+
+        $bot_name  = $this->settings->get( 'ofac_bot_name', 'Chatbot' );
+        $page_data = array(
+            'post_title'   => $bot_name . ' - Chatbot',
+            'post_content' => '[ofac_chatbot fullscreen="true"]',
+            'post_status'  => 'publish',
+            'post_type'    => 'page',
+            'post_name'    => 'chatbot',
+        );
+
+        $new_page_id = wp_insert_post( $page_data );
+
+        if ( ! is_wp_error( $new_page_id ) ) {
+            update_option( 'ofac_dedicated_page_id', $new_page_id );
+
+            // Yoast noindex if available
+            if ( defined( 'WPSEO_VERSION' ) ) {
+                update_post_meta( $new_page_id, '_yoast_wpseo_meta-robots-noindex', '1' );
+            }
+        }
+    }
+
+    /**
+     * Add noindex meta for dedicated page (fallback when Yoast is not active)
+     */
+    public function maybe_noindex_dedicated_page() {
+        if ( defined( 'WPSEO_VERSION' ) ) {
+            return; // Yoast handles it
+        }
+
+        $page_id = (int) $this->settings->get( 'ofac_dedicated_page_id', 0 );
+        if ( $page_id && is_page( $page_id ) ) {
+            echo '<meta name="robots" content="noindex, nofollow">' . "\n";
+        }
+    }
+
+    /**
+     * Use minimal template for dedicated chatbot page
+     *
+     * @param string $template Template path.
+     * @return string
+     */
+    public function dedicated_page_template( $template ) {
+        $page_id = (int) $this->settings->get( 'ofac_dedicated_page_id', 0 );
+        if ( $page_id && is_page( $page_id ) ) {
+            $plugin_template = OFAC_PLUGIN_DIR . 'templates/dedicated-page.php';
+            if ( file_exists( $plugin_template ) ) {
+                return $plugin_template;
+            }
+        }
+        return $template;
+    }
+
+    /**
+     * Hide admin bar on dedicated chatbot page
+     *
+     * @param bool $show Whether to show the admin bar.
+     * @return bool
+     */
+    public function hide_admin_bar_on_dedicated_page( $show ) {
+        $page_id = (int) $this->settings->get( 'ofac_dedicated_page_id', 0 );
+        if ( $page_id && is_page( $page_id ) ) {
+            return false;
+        }
+        return $show;
     }
 
     /**
@@ -128,7 +213,7 @@ class OFAC_Public {
      *
      * @return array
      */
-    private function get_frontend_config() {
+    public function get_frontend_config() {
         $accessibility = OFAC_Accessibility::get_instance();
 
         $config = array(

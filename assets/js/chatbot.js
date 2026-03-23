@@ -99,6 +99,9 @@
 
             // Ouverture automatique (une seule fois par session, pas en mode inline)
             this.handleAutoOpen();
+
+            // Auto-fullscreen for dedicated page mode
+            this.handleAutoFullscreen();
         }
 
         /**
@@ -122,6 +125,24 @@
                     this.open();
                 }
             }, delay);
+        }
+
+        /**
+         * Auto-activate fullscreen when inside a dedicated page wrapper
+         */
+        handleAutoFullscreen() {
+            if (!this.elements.container) return;
+            const wrapper = this.elements.container.closest('.ofac-shortcode--fullscreen');
+            if (wrapper) {
+                // Open the chatbot first (required to make modal visible)
+                if (!this.isOpen) {
+                    this.open();
+                }
+                // Then activate fullscreen
+                if (!this.isFullscreen) {
+                    this.toggleFullscreen();
+                }
+            }
         }
 
         /**

@@ -129,6 +129,11 @@ class OFAC_Chatbot {
             return false;
         }
 
+        // Dedicated page mode: disable floating chatbot everywhere
+        if ( 'dedicated' === $this->settings->get( 'ofac_display_mode', 'floating' ) ) {
+            return false;
+        }
+
         /**
          * Filter whether to display chatbot
          *
