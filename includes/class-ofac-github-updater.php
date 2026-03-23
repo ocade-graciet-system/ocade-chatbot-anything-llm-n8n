@@ -94,6 +94,11 @@ class OFAC_GitHub_Updater {
 
         // Clear cache after update
         add_action( 'upgrader_process_complete', array( $this, 'after_update' ), 10, 2 );
+
+        // "Force update check" button on Updates page
+        add_action( 'core_upgrade_preamble', array( $this, 'render_force_check_button' ) );
+        add_action( 'admin_post_ofac_force_update_check', array( $this, 'handle_force_check' ) );
+        add_action( 'admin_notices', array( $this, 'force_check_notice' ) );
     }
 
     /**
@@ -357,6 +362,48 @@ class OFAC_GitHub_Updater {
         $html .= '</ul>';
 
         return $html;
+    }
+
+    /**
+     * Render "Force update check" button on the Updates page
+     */
+    public function render_force_check_button() {
+        $url = wp_nonce_url(
+            admin_url( 'admin-post.php?action=ofac_force_update_check' ),
+            'ofac_force_update_check'
+        );
+        echo '<p><a href="' . esc_url( $url ) . '" class="button button-primary">'
+            . esc_html__( 'Rechercher les mises à jour Ocade', 'anythingllm-chatbot' )
+            . '</a></p>';
+    }
+
+    /**
+     * Handle the force update check action
+     */
+    public function handle_force_check() {
+        if ( ! current_user_can( 'update_plugins' ) ) {
+            wp_die( esc_html__( 'Vous n\'avez pas la permission d\'effectuer cette action.', 'anythingllm-chatbot' ) );
+        }
+
+        check_admin_referer( 'ofac_force_update_check' );
+
+        $this->force_check();
+        wp_update_plugins();
+
+        wp_safe_redirect( add_query_arg( 'ofac_update_checked', '1', admin_url( 'update-core.php' ) ) );
+        exit;
+    }
+
+    /**
+     * Show success notice after force check
+     */
+    public function force_check_notice() {
+        if ( ! isset( $_GET['ofac_update_checked'] ) ) {
+            return;
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>'
+            . esc_html__( 'Vérification des mises à jour Ocade effectuée.', 'anythingllm-chatbot' )
+            . '</p></div>';
     }
 
     /**
