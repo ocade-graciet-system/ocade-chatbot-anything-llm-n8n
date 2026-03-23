@@ -1748,6 +1748,9 @@
                 this.sessionId = this.generateSessionId();
                 sessionStorage.setItem('ofac_session_id', this.sessionId);
 
+                // Reset feedback state for the new conversation
+                this.resetConversationFeedback();
+
                 // Afficher un message de confirmation
                 this.addMessage('system', this.config.labels.conversation_reset || 'Conversation effacée.');
 
@@ -2113,7 +2116,7 @@
         showConversationFeedback() {
             if (!this.elements.feedbackBar) return;
             const key = `ofac_conv_feedback_${this.sessionId}`;
-            if (localStorage.getItem(key)) return;
+            if (sessionStorage.getItem(key)) return;
             this.elements.feedbackBar.style.display = '';
         }
 
@@ -2123,7 +2126,7 @@
         restoreConversationFeedback() {
             if (!this.elements.feedbackBar) return;
             const key = `ofac_conv_feedback_${this.sessionId}`;
-            const saved = localStorage.getItem(key);
+            const saved = sessionStorage.getItem(key);
             if (saved) {
                 // Already voted — show thanks state
                 this.elements.feedbackBar.style.display = '';
@@ -2207,12 +2210,30 @@
         }
 
         /**
-         * Finalize feedback: show thanks, persist in localStorage
+         * Finalize feedback: show thanks, persist in sessionStorage
          */
         finalizeFeedback() {
-            localStorage.setItem(`ofac_conv_feedback_${this.sessionId}`, '1');
+            sessionStorage.setItem(`ofac_conv_feedback_${this.sessionId}`, '1');
             if (this.elements.feedbackNoteOverlay) this.elements.feedbackNoteOverlay.style.display = 'none';
             if (this.elements.feedbackThanks) this.elements.feedbackThanks.style.display = '';
+        }
+
+        /**
+         * Reset feedback UI for a new conversation
+         */
+        resetConversationFeedback() {
+            if (!this.elements.feedbackBar) return;
+            this.elements.feedbackBar.style.display = 'none';
+            if (this.elements.feedbackLabel) this.elements.feedbackLabel.style.display = '';
+            if (this.elements.feedbackButtons) {
+                this.elements.feedbackButtons.style.display = '';
+                this.elements.feedbackButtons.querySelectorAll('.ofac-feedback-btn').forEach(btn => {
+                    btn.classList.remove('ofac-feedback-btn--active');
+                });
+            }
+            if (this.elements.feedbackNoteOverlay) this.elements.feedbackNoteOverlay.style.display = 'none';
+            if (this.elements.feedbackNoteInput) this.elements.feedbackNoteInput.value = '';
+            if (this.elements.feedbackThanks) this.elements.feedbackThanks.style.display = 'none';
         }
 
         /**
