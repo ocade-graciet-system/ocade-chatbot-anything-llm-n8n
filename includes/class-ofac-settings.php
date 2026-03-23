@@ -124,6 +124,16 @@ class OFAC_Settings {
                         'description' => __( 'Afficher le chatbot uniquement aux utilisateurs connectés. Si des rôles sont sélectionnés ci-dessous, seuls ces rôles y auront accès.', 'anythingllm-chatbot' ),
                         'default'     => false,
                     ),
+                    'ofac_display_mode' => array(
+                        'type'        => 'select',
+                        'label'       => __( 'Mode d\'affichage', 'anythingllm-chatbot' ),
+                        'description' => __( 'Pastille flottante sur toutes les pages ou page dédiée uniquement', 'anythingllm-chatbot' ),
+                        'default'     => 'floating',
+                        'options'     => array(
+                            'floating'  => __( 'Pastille flottante (toutes les pages)', 'anythingllm-chatbot' ),
+                            'dedicated' => __( 'Page dédiée uniquement', 'anythingllm-chatbot' ),
+                        ),
+                    ),
                     'ofac_position' => array(
                         'type'        => 'select',
                         'label'       => __( 'Position du bouton', 'anythingllm-chatbot' ),
@@ -239,6 +249,12 @@ class OFAC_Settings {
                         'label'       => __( 'Message d\'accueil', 'anythingllm-chatbot' ),
                         'description' => __( 'Message affiché à l\'ouverture du chat', 'anythingllm-chatbot' ),
                         'default'     => __( 'Bonjour ! Comment puis-je vous aider ?', 'anythingllm-chatbot' ),
+                    ),
+                    'ofac_login_page_message' => array(
+                        'type'        => 'textarea',
+                        'label'       => __( 'Message de la page de connexion', 'anythingllm-chatbot' ),
+                        'description' => __( 'Texte affiché aux visiteurs non connectés sur la page dédiée du chatbot.', 'anythingllm-chatbot' ),
+                        'default'     => __( 'Connectez-vous pour accéder à votre assistant.', 'anythingllm-chatbot' ),
                     ),
                     'ofac_fallback_message' => array(
                         'type'        => 'textarea',
@@ -519,6 +535,8 @@ class OFAC_Settings {
             'ofac_workspace_slug'       => '',
             'ofac_timeout'              => 60,
             'ofac_enabled'              => false,
+            'ofac_display_mode'         => 'floating',
+            'ofac_dedicated_page_id'    => 0,
             'ofac_position'             => 'bottom-right',
             'ofac_width_desktop'        => 400,
             'ofac_height_desktop'       => 600,
@@ -529,6 +547,7 @@ class OFAC_Settings {
             'ofac_user_avatar'          => '',
             'ofac_bot_name'             => 'Service Client',
             'ofac_welcome_message'      => '',
+            'ofac_login_page_message'   => 'Connectez-vous pour accéder à votre assistant.',
             'ofac_fallback_message'     => '',
             'ofac_placeholder_text'     => '',
             'ofac_max_chars'            => 5000,
