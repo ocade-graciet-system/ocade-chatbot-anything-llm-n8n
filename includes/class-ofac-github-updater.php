@@ -373,7 +373,7 @@ class OFAC_GitHub_Updater {
             'ofac_force_update_check'
         );
         echo '<p><a href="' . esc_url( $url ) . '" class="button button-primary">'
-            . esc_html__( 'Rechercher les mises à jour Ocade', 'anythingllm-chatbot' )
+            . esc_html__( 'Rechercher des mises à jour', 'anythingllm-chatbot' )
             . '</a></p>';
     }
 
