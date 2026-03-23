@@ -755,10 +755,17 @@
             // Send reply email (toggle fields then send)
             $(document).on('click', '.ofac-send-reply', this.toggleEmailAndSend.bind(this));
 
-            // Close modal
+            // Read feedback note
+            $(document).on('click', '.ofac-read-note', function() {
+                var note = $(this).data('note');
+                $('#ofac-note-text').text(note);
+                $('#ofac-note-modal').show();
+            });
+
+            // Close modals
             $(document).on('click', '.ofac-modal-close, .ofac-modal', function(e) {
                 if ($(e.target).is('.ofac-modal, .ofac-modal-close')) {
-                    $('#ofac-messages-modal').hide();
+                    $('.ofac-modal').hide();
                 }
             });
         },
@@ -766,8 +773,8 @@
         initModal: function() {
             // Modal escape key
             $(document).on('keydown', function(e) {
-                if (e.key === 'Escape' && $('#ofac-messages-modal').is(':visible')) {
-                    $('#ofac-messages-modal').hide();
+                if (e.key === 'Escape') {
+                    $('.ofac-modal:visible').hide();
                 }
             });
         },

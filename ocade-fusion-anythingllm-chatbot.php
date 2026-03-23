@@ -320,6 +320,7 @@ final class OFAC_Plugin {
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}ofac_consents" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}ofac_callback_requests" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}ofac_ticket_replies" );
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}ofac_conversation_feedback" );
 
         // Delete transients
         $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_ofac_%'" );
@@ -413,6 +414,19 @@ final class OFAC_Plugin {
             created_at datetime NOT NULL,
             PRIMARY KEY (id),
             KEY message_id (message_id)
+        ) $charset_collate;";
+
+        // Conversation feedback table
+        $sql[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}ofac_conversation_feedback (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            conversation_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            session_id varchar(64) NOT NULL,
+            rating tinyint(1) NOT NULL,
+            note text DEFAULT NULL,
+            created_at datetime NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY session_feedback (session_id),
+            KEY conversation_id (conversation_id)
         ) $charset_collate;";
 
         // Consents table

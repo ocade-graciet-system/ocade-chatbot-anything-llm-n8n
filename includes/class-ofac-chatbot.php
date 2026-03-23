@@ -56,6 +56,8 @@ class OFAC_Chatbot {
     private function init_hooks() {
         add_action( 'wp_ajax_ofac_save_feedback', array( $this, 'save_feedback' ) );
         add_action( 'wp_ajax_nopriv_ofac_save_feedback', array( $this, 'save_feedback' ) );
+        add_action( 'wp_ajax_ofac_save_conversation_feedback', array( $this, 'save_conversation_feedback' ) );
+        add_action( 'wp_ajax_nopriv_ofac_save_conversation_feedback', array( $this, 'save_conversation_feedback' ) );
         add_action( 'wp_ajax_ofac_export_conversation', array( $this, 'export_conversation' ) );
         add_action( 'wp_ajax_nopriv_ofac_export_conversation', array( $this, 'export_conversation' ) );
         add_action( 'wp_ajax_ofac_clear_history', array( $this, 'clear_history' ) );
@@ -315,6 +317,66 @@ class OFAC_Chatbot {
         }
 
         wp_send_json_success( array( 'message' => __( 'Historique effacé', 'anythingllm-chatbot' ) ) );
+    }
+
+    /**
+     * Save conversation feedback (thumbs up/down + optional note)
+     */
+    public function save_conversation_feedback() {
+        if ( ! check_ajax_referer( 'ofac_chat_nonce', 'nonce', false ) ) {
+            wp_send_json_error( array( 'message' => __( 'Nonce invalide', 'anythingllm-chatbot' ) ), 403 );
+        }
+
+        $session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
+        $rating     = isset( $_POST['rating'] ) ? intval( $_POST['rating'] ) : 0;
+        $note       = isset( $_POST['note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['note'] ) ) : null;
+
+        if ( empty( $session_id ) || ! in_array( $rating, array( -1, 1 ), true ) ) {
+            wp_send_json_error( array( 'message' => __( 'Paramètres invalides', 'anythingllm-chatbot' ) ), 400 );
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'ofac_conversation_feedback';
+
+        // Get conversation_id from session
+        $conversation_id = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}ofac_conversations WHERE session_id = %s",
+                $session_id
+            )
+        );
+
+        // Upsert: update if already exists for this session
+        $existing = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM {$table} WHERE session_id = %s",
+                $session_id
+            )
+        );
+
+        if ( $existing ) {
+            $data   = array( 'rating' => $rating );
+            $format = array( '%d' );
+            if ( null !== $note ) {
+                $data['note']   = $note;
+                $format[]       = '%s';
+            }
+            $wpdb->update( $table, $data, array( 'id' => $existing ), $format, array( '%d' ) );
+        } else {
+            $wpdb->insert(
+                $table,
+                array(
+                    'conversation_id' => $conversation_id,
+                    'session_id'      => $session_id,
+                    'rating'          => $rating,
+                    'note'            => $note,
+                    'created_at'      => current_time( 'mysql' ),
+                ),
+                array( '%d', '%s', '%d', '%s', '%s' )
+            );
+        }
+
+        wp_send_json_success( array( 'message' => __( 'Merci pour votre avis !', 'anythingllm-chatbot' ) ) );
     }
 
     /**

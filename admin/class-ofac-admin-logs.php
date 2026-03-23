@@ -154,15 +154,34 @@ class OFAC_Admin_Logs {
                             <th scope="col"><?php esc_html_e( 'Messages', 'anythingllm-chatbot' ); ?></th>
                             <th scope="col"><?php esc_html_e( 'Début', 'anythingllm-chatbot' ); ?></th>
                             <th scope="col"><?php esc_html_e( 'Fin', 'anythingllm-chatbot' ); ?></th>
+                            <th scope="col"><?php esc_html_e( 'Avis', 'anythingllm-chatbot' ); ?></th>
                             <th scope="col"><?php esc_html_e( 'Actions', 'anythingllm-chatbot' ); ?></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if ( empty( $conversations['items'] ) ) : ?>
                             <tr>
-                                <td colspan="8"><?php esc_html_e( 'Aucune conversation trouvée.', 'anythingllm-chatbot' ); ?></td>
+                                <td colspan="9"><?php esc_html_e( 'Aucune conversation trouvée.', 'anythingllm-chatbot' ); ?></td>
                             </tr>
                         <?php else : ?>
+                            <?php
+                            // Pre-fetch all feedback for displayed conversations
+                            global $wpdb;
+                            $conv_ids = wp_list_pluck( $conversations['items'], 'id' );
+                            $feedbacks = array();
+                            if ( ! empty( $conv_ids ) ) {
+                                $placeholders = implode( ',', array_fill( 0, count( $conv_ids ), '%d' ) );
+                                $fb_results = $wpdb->get_results(
+                                    $wpdb->prepare(
+                                        "SELECT conversation_id, rating, note FROM {$wpdb->prefix}ofac_conversation_feedback WHERE conversation_id IN ($placeholders)",
+                                        ...$conv_ids
+                                    )
+                                );
+                                foreach ( $fb_results as $fb ) {
+                                    $feedbacks[ $fb->conversation_id ] = $fb;
+                                }
+                            }
+                            ?>
                             <?php foreach ( $conversations['items'] as $conv ) : ?>
                                 <tr data-id="<?php echo esc_attr( $conv->id ); ?>">
                                     <th scope="row" class="check-column">
@@ -197,6 +216,24 @@ class OFAC_Admin_Logs {
                                             <span class="ofac-active"><?php esc_html_e( 'Active', 'anythingllm-chatbot' ); ?></span>
                                         <?php endif; ?>
                                     </td>
+                                    <td class="ofac-feedback-cell">
+                                        <?php
+                                        $fb = isset( $feedbacks[ $conv->id ] ) ? $feedbacks[ $conv->id ] : null;
+                                        if ( $fb ) :
+                                            $icon  = $fb->rating > 0 ? 'dashicons-thumbs-up' : 'dashicons-thumbs-down';
+                                            $color = $fb->rating > 0 ? '#22c55e' : '#ef4444';
+                                        ?>
+                                            <span class="dashicons <?php echo esc_attr( $icon ); ?>"
+                                                  style="color:<?php echo esc_attr( $color ); ?>;font-size:18px;width:18px;height:18px;vertical-align:middle;"></span>
+                                            <?php if ( ! empty( $fb->note ) ) : ?>
+                                            <button type="button" class="button button-small ofac-read-note" data-note="<?php echo esc_attr( $fb->note ); ?>" style="margin-left:4px;vertical-align:middle;">
+                                                <?php esc_html_e( 'Lire', 'anythingllm-chatbot' ); ?>
+                                            </button>
+                                            <?php endif; ?>
+                                        <?php else : ?>
+                                            <span style="color:#94a3b8;">&mdash;</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <button type="button" class="button button-small ofac-view-messages" data-id="<?php echo esc_attr( $conv->id ); ?>">
                                             <?php esc_html_e( 'Voir', 'anythingllm-chatbot' ); ?>
@@ -219,6 +256,19 @@ class OFAC_Admin_Logs {
                     </div>
                 </div>
             </form>
+        </div>
+
+        <!-- Modal for feedback note -->
+        <div id="ofac-note-modal" class="ofac-modal" style="display:none;">
+            <div class="ofac-modal-content" style="max-width:480px;">
+                <div class="ofac-modal-header">
+                    <h2><?php esc_html_e( 'Commentaire du visiteur', 'anythingllm-chatbot' ); ?></h2>
+                    <button type="button" class="ofac-modal-close">&times;</button>
+                </div>
+                <div class="ofac-modal-body">
+                    <p id="ofac-note-text" style="white-space:pre-wrap;margin:0;"></p>
+                </div>
+            </div>
         </div>
 
         <!-- Modal for viewing messages -->

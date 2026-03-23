@@ -1340,6 +1340,141 @@
 }
 
 /* ==========================================================================
+   Conversation Feedback Bar
+   ========================================================================== */
+
+.ofac-conversation-feedback {
+    display: flex;
+    align-items: center;
+    gap: var(--ofac-spacing-sm);
+    padding: var(--ofac-spacing-xs) var(--ofac-spacing-md);
+    background: var(--ofac-bg-secondary);
+    border-top: 1px solid var(--ofac-border);
+    min-height: 40px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    position: relative;
+}
+
+.ofac-feedback-label {
+    font-size: var(--ofac-font-size-sm);
+    color: var(--ofac-text-secondary);
+    white-space: nowrap;
+}
+
+.ofac-feedback-buttons {
+    display: flex;
+    gap: var(--ofac-spacing-xs);
+}
+
+.ofac-feedback-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--ofac-border);
+    border-radius: var(--ofac-radius-md);
+    background: var(--ofac-bg);
+    color: var(--ofac-text-secondary);
+    cursor: pointer;
+    transition: all var(--ofac-transition-fast);
+}
+
+.ofac-feedback-btn:hover {
+    border-color: var(--ofac-primary);
+    color: var(--ofac-primary);
+    background: var(--ofac-primary-light);
+}
+
+.ofac-feedback-btn:focus-visible {
+    outline: 2px solid var(--ofac-primary);
+    outline-offset: 2px;
+}
+
+.ofac-feedback-btn--active {
+    background: var(--ofac-primary);
+    color: var(--ofac-text-inverse);
+    border-color: var(--ofac-primary);
+}
+
+.ofac-feedback-thanks {
+    font-size: var(--ofac-font-size-sm);
+    color: var(--ofac-success);
+    font-weight: 500;
+}
+
+.ofac-feedback-note-overlay {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ofac-spacing-xs);
+    padding-top: var(--ofac-spacing-xs);
+}
+
+.ofac-feedback-note-input {
+    width: 100%;
+    padding: var(--ofac-spacing-sm);
+    border: 1px solid var(--ofac-border);
+    border-radius: var(--ofac-radius-md);
+    font-family: var(--ofac-font-family);
+    font-size: var(--ofac-font-size-sm);
+    resize: none;
+    background: var(--ofac-bg);
+    color: var(--ofac-text);
+}
+
+.ofac-feedback-note-input:focus {
+    outline: none;
+    border-color: var(--ofac-primary);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.ofac-feedback-note-actions {
+    display: flex;
+    gap: var(--ofac-spacing-sm);
+    justify-content: flex-end;
+}
+
+.ofac-feedback-note-submit,
+.ofac-feedback-note-skip {
+    padding: var(--ofac-spacing-xs) var(--ofac-spacing-md);
+    border-radius: var(--ofac-radius-md);
+    font-size: var(--ofac-font-size-sm);
+    cursor: pointer;
+    border: none;
+    font-family: var(--ofac-font-family);
+    min-height: 36px;
+}
+
+.ofac-feedback-note-submit {
+    background: var(--ofac-primary);
+    color: var(--ofac-text-inverse);
+}
+
+.ofac-feedback-note-submit:hover {
+    background: var(--ofac-primary-hover);
+}
+
+.ofac-feedback-note-skip {
+    background: transparent;
+    color: var(--ofac-text-secondary);
+    border: 1px solid var(--ofac-border);
+}
+
+.ofac-feedback-note-skip:hover {
+    background: var(--ofac-bg);
+}
+
+/* Responsive: hide label on small screens */
+@media (max-width: 480px) {
+    .ofac-feedback-label {
+        display: none;
+    }
+}
+
+/* ==========================================================================
    Input Area
    ========================================================================== */
 

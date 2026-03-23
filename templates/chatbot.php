@@ -328,6 +328,41 @@ if ( ! defined( 'ABSPATH' ) ) {
             <!-- Quick reply buttons will be inserted here -->
         </div>
 
+        <!-- Conversation Feedback Bar -->
+        <div id="ofac-conversation-feedback" class="ofac-conversation-feedback" style="display:none;">
+            <span class="ofac-feedback-label"><?php esc_html_e( 'Votre avis ?', 'anythingllm-chatbot' ); ?></span>
+            <div class="ofac-feedback-buttons">
+                <button type="button" class="ofac-feedback-btn ofac-feedback-up" data-rating="1"
+                        aria-label="<?php esc_attr_e( 'Pouce en haut', 'anythingllm-chatbot' ); ?>">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                        <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/>
+                    </svg>
+                </button>
+                <button type="button" class="ofac-feedback-btn ofac-feedback-down" data-rating="-1"
+                        aria-label="<?php esc_attr_e( 'Pouce en bas', 'anythingllm-chatbot' ); ?>">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                        <path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="ofac-feedback-thanks" style="display:none;">
+                <?php esc_html_e( 'Merci pour votre avis !', 'anythingllm-chatbot' ); ?>
+            </div>
+            <div class="ofac-feedback-note-overlay" style="display:none;">
+                <textarea class="ofac-feedback-note-input" rows="2"
+                          placeholder="<?php esc_attr_e( 'Un commentaire ? (facultatif)', 'anythingllm-chatbot' ); ?>"
+                          maxlength="500"></textarea>
+                <div class="ofac-feedback-note-actions">
+                    <button type="button" class="ofac-feedback-note-submit">
+                        <?php esc_html_e( 'Envoyer', 'anythingllm-chatbot' ); ?>
+                    </button>
+                    <button type="button" class="ofac-feedback-note-skip">
+                        <?php esc_html_e( 'Passer', 'anythingllm-chatbot' ); ?>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Input Form -->
         <form id="ofac-input-form" class="ofac-input-form" aria-label="<?php echo esc_attr( $accessibility->get_label( 'compose' ) ); ?>">
             <!-- Honeypot field -->
