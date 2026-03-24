@@ -63,8 +63,12 @@ if ( ! defined( 'ABSPATH' ) ) {
             overflow: auto;
         }
         .ofac-dedicated-body .ofac-access-denied {
-            min-height: calc(100vh - 36px);
-            margin-top: 36px;
+            position: fixed;
+            top: 36px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            min-height: auto;
         }
         .ofac-dedicated-body .ofac-inline .ofac-modal,
         .ofac-dedicated-body .ofac-inline #ofac-modal,
