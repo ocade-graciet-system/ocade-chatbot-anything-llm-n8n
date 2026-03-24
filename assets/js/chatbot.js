@@ -31,6 +31,10 @@
             this.abortController = null;
             this.messageQueue = [];
             this.isProcessing = false;
+            this.isProcessingQueue = false;
+            this.requestTimeoutId = null;
+            this.isTimedOut = false;
+            this.requestTimeoutMs = 30000;
 
             // Historique des commandes (flèche haut/bas)
             this.commandHistory = [];
@@ -525,10 +529,19 @@
             // Retirer l'écouteur de clics
             document.removeEventListener('click', this.handleOutsideClick);
 
-            // Annuler toute requête en cours
+            // Annuler toute requête en cours et vider la file
             if (this.abortController) {
                 this.abortController.abort();
+                this.abortController = null;
             }
+            clearTimeout(this.requestTimeoutId);
+            this.requestTimeoutId = null;
+            this.isTimedOut = false;
+            this.messageQueue = [];
+            this.isProcessing = false;
+            this.isProcessingQueue = false;
+            this.hideTyping();
+            this.enableSendButton();
 
             this.trigger('ofac:close');
         }
@@ -722,7 +735,6 @@
          */
         async sendMessage(message = null) {
             // Vérifier le consentement avant tout envoi
-            // Par défaut, le consentement est requis (RGPD) sauf si explicitement désactivé
             const requireConsent = this.config.settings.require_consent !== false;
             if (requireConsent && !this.hasConsent) {
                 this.showError(this.config.labels.consent_required || 'Vous devez accepter les conditions pour utiliser le chat.');
@@ -732,9 +744,9 @@
             const text = message || (this.elements.inputField ? this.elements.inputField.value.trim() : '');
 
             // Permettre l'envoi si on a du texte OU une image en attente
-            if ((!text && !this.pendingImage) || this.isProcessing) return;
+            if (!text && !this.pendingImage) return;
 
-            // Vérifier les commandes spéciales
+            // Vérifier les commandes spéciales (toujours immédiates, jamais en file)
             if (text && this.isCommand(text)) {
                 this.processCommand(text);
                 this.clearInput();
@@ -753,41 +765,87 @@
                 this.addToHistory(text);
             }
 
-            this.isProcessing = true;
-            this.disableSendButton();
-            this.clearInput();
-            this.hideQuickReplies();
-
-            // Capturer l'image en attente avant de la supprimer
+            // Capturer l'image et vider l'input immédiatement (UX réactive)
             const imageToSend = this.pendingImage;
-            
-            // Ajouter le message utilisateur (avec preview image si présente)
+            this.clearInput();
             if (imageToSend) {
-                // Afficher l'image dans le message
-                const imageHtml = `<div class="ofac-message-image"><img src="${imageToSend.preview}" alt="${imageToSend.name}" /></div>`;
-                this.addMessage('user', text ? `${imageHtml}<p>${text}</p>` : imageHtml, { isHtml: true });
                 this.removeImagePreview();
-            } else {
-                this.addMessage('user', text);
             }
 
-            // Afficher l'indicateur de frappe
-            this.showTyping();
+            // Limiter la file à 5 messages pour éviter les abus
+            if (this.messageQueue.length >= 5) {
+                this.showToast('Veuillez patienter, trop de messages en attente.');
+                return;
+            }
+
+            this.messageQueue.push({ text, image: imageToSend });
+            this.processQueue();
+        }
+
+        /**
+         * Traite la file de messages séquentiellement
+         */
+        async processQueue() {
+            if (this.isProcessingQueue) return;
+            this.isProcessingQueue = true;
 
             try {
-                if (this.config.stream_enabled) {
-                    await this.sendStreamingMessage(text, imageToSend);
-                } else {
-                    await this.sendStandardMessage(text, imageToSend);
-                }
-            } catch (error) {
-                this.hideTyping();
-                if (error.name !== 'AbortError') {
-                    this.showError(error.message || this.config.labels.error_message);
+                while (this.messageQueue.length > 0) {
+                    const { text, image } = this.messageQueue.shift();
+
+                    this.isProcessing = true;
+                    this.disableSendButton();
+                    this.hideQuickReplies();
+
+                    // Afficher le message utilisateur
+                    if (image) {
+                        const imageHtml = `<div class="ofac-message-image"><img src="${image.preview}" alt="${image.name}" /></div>`;
+                        this.addMessage('user', text ? `${imageHtml}<p>${text}</p>` : imageHtml, { isHtml: true });
+                    } else {
+                        this.addMessage('user', text);
+                    }
+
+                    this.showTyping();
+
+                    // AbortController frais pour chaque requête
+                    if (this.abortController) {
+                        this.abortController.abort();
+                    }
+                    this.abortController = new AbortController();
+
+                    // Timeout client (30s par défaut)
+                    this.isTimedOut = false;
+                    this.requestTimeoutId = setTimeout(() => {
+                        this.isTimedOut = true;
+                        if (this.abortController) {
+                            this.abortController.abort();
+                        }
+                    }, this.requestTimeoutMs);
+
+                    try {
+                        if (this.config.stream_enabled) {
+                            await this.sendStreamingMessage(text, image);
+                        } else {
+                            await this.sendStandardMessage(text, image);
+                        }
+                    } catch (error) {
+                        this.hideTyping();
+                        if (error.name === 'AbortError') {
+                            if (this.isTimedOut) {
+                                this.showError('La réponse a pris trop de temps. Veuillez réessayer.');
+                            }
+                        } else {
+                            this.showError(error.message || this.config.labels.error_message);
+                        }
+                    } finally {
+                        clearTimeout(this.requestTimeoutId);
+                        this.requestTimeoutId = null;
+                        this.isProcessing = false;
+                        this.enableSendButton();
+                    }
                 }
             } finally {
-                this.isProcessing = false;
-                this.enableSendButton();
+                this.isProcessingQueue = false;
             }
         }
 
@@ -921,8 +979,6 @@
             // Ajouter le honeypot
             formData.append('ofac_hp', '');
 
-            this.abortController = new AbortController();
-
             const response = await fetch(this.config.ajax_url, {
                 method: 'POST',
                 body: formData,
@@ -966,8 +1022,6 @@
                 message: text,
                 session_id: this.sessionId
             });
-
-            this.abortController = new AbortController();
 
             const response = await fetch(`${this.config.ajax_url}?${params}`, {
                 method: 'GET',
@@ -1027,7 +1081,7 @@
                                     this.showQuickReplies(parsed.suggestedQuestions);
                                 }
                             } catch (e) {
-                                // Ignorer les erreurs de parsing
+                                console.warn('OFAC: streaming parse error:', data, e);
                             }
                         }
                     }
@@ -1732,6 +1786,19 @@
          */
         resetConversation() {
             if (confirm(this.config.labels.confirm_reset || 'Voulez-vous vraiment effacer la conversation ?')) {
+                // Annuler toute requête en cours et vider la file
+                if (this.abortController) {
+                    this.abortController.abort();
+                    this.abortController = null;
+                }
+                clearTimeout(this.requestTimeoutId);
+                this.requestTimeoutId = null;
+                this.isProcessing = false;
+                this.isTimedOut = false;
+                this.messageQueue = [];
+                this.hideTyping();
+                this.enableSendButton();
+
                 // Vider l'historique
                 this.conversationHistory = [];
                 this.saveHistory();
