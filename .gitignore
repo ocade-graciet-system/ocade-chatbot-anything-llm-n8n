@@ -1,0 +1,36 @@
+# Environment and credentials
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Database and backups
+*.sql
+*.bak
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Node
+node_modules/
+
+# PHP
+vendor/
+
+# IDE and system
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+
+# Build artifacts
+*.zip
