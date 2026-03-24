@@ -18,9 +18,11 @@ if ( ! defined( 'ABSPATH' ) ) {
     <?php wp_head(); ?>
     <style>
         html, body {
-            margin: 0;
-            padding: 0;
+            margin: 0 !important;
+            padding: 0 !important;
             height: 100%;
+            max-width: none !important;
+            width: 100% !important;
             overflow: hidden;
         }
         .ofac-dedicated-topbar {
