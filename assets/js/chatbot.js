@@ -1701,12 +1701,11 @@
         }
 
         /**
-         * Scroll vers le bas du container de messages
+         * Scroll vers le bas désactivé — l'utilisateur gère sa position de lecture.
+         * Voir issue #9 : le scroll automatique vers le bas nuit à la lecture des longues réponses.
          */
         scrollToBottom() {
-            if (this.elements.messagesContainer) {
-                this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollHeight;
-            }
+            // Comportement désactivé intentionnellement
         }
 
         /**
