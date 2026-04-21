@@ -208,10 +208,10 @@ class OFAC_Admin_Logs {
                                         <?php endif; ?>
                                     </td>
                                     <td><?php echo esc_html( $conv->message_count ); ?></td>
-                                    <td><?php echo esc_html( wp_date( 'd/m/Y H:i', strtotime( $conv->started_at ) ) ); ?></td>
+                                    <td><?php echo esc_html( mysql2date( 'd/m/Y H:i', $conv->started_at ) ); ?></td>
                                     <td>
                                         <?php if ( $conv->ended_at ) : ?>
-                                            <?php echo esc_html( wp_date( 'd/m/Y H:i', strtotime( $conv->ended_at ) ) ); ?>
+                                            <?php echo esc_html( mysql2date( 'd/m/Y H:i', $conv->ended_at ) ); ?>
                                         <?php else : ?>
                                             <span class="ofac-active"><?php esc_html_e( 'Active', 'anythingllm-chatbot' ); ?></span>
                                         <?php endif; ?>
@@ -416,7 +416,7 @@ class OFAC_Admin_Logs {
                 </div>',
                 esc_attr( $role_class ),
                 esc_html( $role_label ),
-                esc_html( wp_date( 'd/m/Y H:i:s', strtotime( $msg->created_at ) ) ),
+                esc_html( mysql2date( 'd/m/Y H:i:s', $msg->created_at ) ),
                 $content_html
             );
         }
@@ -474,7 +474,7 @@ class OFAC_Admin_Logs {
                 $html .= '<div class="ofac-message ' . esc_attr( $entry_class ) . '">';
                 $html .= '<div class="ofac-message-header">';
                 $html .= '<span class="ofac-message-role"><span class="dashicons ' . esc_attr( $entry_icon ) . '" style="font-size:14px;width:14px;height:14px;vertical-align:middle;margin-right:4px;"></span>' . esc_html( $entry_label ) . ' &mdash; ' . esc_html( $author_name ) . '</span>';
-                $html .= '<span class="ofac-message-time">' . esc_html( wp_date( 'd/m/Y H:i:s', strtotime( $entry->created_at ) ) ) . '</span>';
+                $html .= '<span class="ofac-message-time">' . esc_html( mysql2date( 'd/m/Y H:i:s', $entry->created_at ) ) . '</span>';
                 $html .= '</div>';
 
                 if ( $is_email && ! empty( $entry->subject ) ) {
