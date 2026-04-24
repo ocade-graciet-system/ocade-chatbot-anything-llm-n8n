@@ -188,24 +188,46 @@ class OFAC_Public {
             true
         );
 
-        // Check if chatbot should be displayed
-        $chatbot = OFAC_Chatbot::get_instance();
-        if ( ! $chatbot->is_enabled() || ! $chatbot->should_display() ) {
+        wp_register_script(
+            'ofac-bubble-popup',
+            OFAC_PLUGIN_URL . 'assets/js/bubble-popup.js',
+            array(),
+            OFAC_VERSION,
+            true
+        );
+
+        $chatbot        = OFAC_Chatbot::get_instance();
+        $display_chat   = $chatbot->is_enabled() && $chatbot->should_display();
+        $display_bubble = $chatbot->should_display_redirect_bubble();
+
+        if ( ! $display_chat && ! $display_bubble ) {
             return;
         }
 
-        // Enqueue styles
         wp_enqueue_style( 'ofac-chatbot' );
 
-        // Enqueue main chatbot script
-        wp_enqueue_script( 'ofac-chatbot' );
+        if ( $display_chat ) {
+            wp_enqueue_script( 'ofac-chatbot' );
+            wp_localize_script(
+                'ofac-chatbot',
+                'ofacConfig',
+                $this->get_frontend_config()
+            );
+        }
 
-        // Localize settings - MUST be after enqueue
-        wp_localize_script( 
-            'ofac-chatbot',
-            'ofacConfig',
-            $this->get_frontend_config()
-        );
+        // Bubble popup: enqueue when enabled, for both floating and redirect-bubble modes
+        if ( (bool) $this->settings->get( 'ofac_bubble_popup_enabled', false )
+            && ( $display_chat || $display_bubble ) ) {
+            wp_enqueue_script( 'ofac-bubble-popup' );
+            wp_localize_script(
+                'ofac-bubble-popup',
+                'ofacBubblePopup',
+                array(
+                    'delay'      => (int) $this->settings->get( 'ofac_bubble_popup_delay', 5 ),
+                    'storageKey' => 'ofac_bubble_popup_closed',
+                )
+            );
+        }
     }
 
     /**
@@ -283,6 +305,12 @@ class OFAC_Public {
     public function render_chatbot() {
         $chatbot = OFAC_Chatbot::get_instance();
 
+        // Dedicated-mode redirect bubble (replaces full chatbot on non-dedicated pages)
+        if ( $chatbot->should_display_redirect_bubble() ) {
+            $this->render_redirect_bubble_html( $chatbot );
+            return;
+        }
+
         if ( ! $chatbot->is_enabled() || ! $chatbot->should_display() ) {
             return;
         }
@@ -293,6 +321,29 @@ class OFAC_Public {
         }
 
         $this->render_chatbot_html();
+    }
+
+    /**
+     * Render the redirect bubble HTML (dedicated mode shortcut)
+     *
+     * @param OFAC_Chatbot $chatbot Chatbot instance.
+     */
+    public function render_redirect_bubble_html( $chatbot ) {
+        $dedicated_url = $chatbot->get_dedicated_page_url();
+        $position      = $this->settings->get( 'ofac_position', 'bottom-right' );
+        $primary_color = $this->settings->get( 'ofac_primary_color', '#2563eb' );
+        $text_color    = $this->settings->get( 'ofac_text_color', '#ffffff' );
+        $popup_enabled = (bool) $this->settings->get( 'ofac_bubble_popup_enabled', false );
+        $popup_text    = $this->settings->get( 'ofac_bubble_popup_text', __( 'Besoin d\'aide ?', 'anythingllm-chatbot' ) );
+
+        $style = sprintf(
+            '--ofac-primary: %s; --ofac-primary-hover: %s; --ofac-text-inverse: %s;',
+            esc_attr( $primary_color ),
+            esc_attr( $this->adjust_brightness( $primary_color, -20 ) ),
+            esc_attr( $text_color )
+        );
+
+        include OFAC_PLUGIN_DIR . 'templates/redirect-bubble.php';
     }
 
     /**
@@ -353,6 +404,10 @@ class OFAC_Public {
         $contact_phone       = $this->settings->get( 'ofac_contact_phone', '' );
         $enable_callback_btn = (bool) $this->settings->get( 'ofac_enable_callback_btn', false );
         $callback_btn_label  = $this->settings->get( 'ofac_callback_btn_label', __( 'Être recontacté', 'anythingllm-chatbot' ) );
+
+        // Bubble popup (above floating trigger)
+        $popup_enabled = (bool) $this->settings->get( 'ofac_bubble_popup_enabled', false );
+        $popup_text    = $this->settings->get( 'ofac_bubble_popup_text', __( 'Besoin d\'aide ?', 'anythingllm-chatbot' ) );
 
         $container_class = 'ofac-chatbot';
         if ( $inline ) {

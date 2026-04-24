@@ -134,6 +134,32 @@ class OFAC_Settings {
                             'dedicated' => __( 'Page dédiée uniquement', 'anythingllm-chatbot' ),
                         ),
                     ),
+                    'ofac_dedicated_show_bubble' => array(
+                        'type'        => 'checkbox',
+                        'label'       => __( 'Afficher une bulle flottante (mode page dédiée)', 'anythingllm-chatbot' ),
+                        'description' => __( 'En mode « Page dédiée uniquement », affiche malgré tout une bulle flottante sur les autres pages. Au clic, l\'utilisateur est redirigé vers la page dédiée du chatbot.', 'anythingllm-chatbot' ),
+                        'default'     => false,
+                    ),
+                    'ofac_bubble_popup_enabled' => array(
+                        'type'        => 'checkbox',
+                        'label'       => __( 'Afficher un message popup au-dessus de la bulle', 'anythingllm-chatbot' ),
+                        'description' => __( 'Affiche un message d\'accroche au-dessus de la bulle flottante après un délai. Fermable par l\'utilisateur, mémorisé pour la session.', 'anythingllm-chatbot' ),
+                        'default'     => false,
+                    ),
+                    'ofac_bubble_popup_text' => array(
+                        'type'        => 'text',
+                        'label'       => __( 'Texte du popup', 'anythingllm-chatbot' ),
+                        'description' => __( 'Texte affiché dans le popup au-dessus de la bulle.', 'anythingllm-chatbot' ),
+                        'default'     => __( 'Besoin d\'aide ?', 'anythingllm-chatbot' ),
+                    ),
+                    'ofac_bubble_popup_delay' => array(
+                        'type'        => 'number',
+                        'label'       => __( 'Délai d\'apparition du popup (secondes)', 'anythingllm-chatbot' ),
+                        'description' => __( 'Délai en secondes avant l\'apparition du popup après le chargement de la page.', 'anythingllm-chatbot' ),
+                        'default'     => 5,
+                        'min'         => 0,
+                        'max'         => 120,
+                    ),
                     'ofac_position' => array(
                         'type'        => 'select',
                         'label'       => __( 'Position du bouton', 'anythingllm-chatbot' ),
@@ -537,6 +563,10 @@ class OFAC_Settings {
             'ofac_enabled'              => false,
             'ofac_display_mode'         => 'floating',
             'ofac_dedicated_page_id'    => 0,
+            'ofac_dedicated_show_bubble' => false,
+            'ofac_bubble_popup_enabled' => false,
+            'ofac_bubble_popup_text'    => 'Besoin d\'aide ?',
+            'ofac_bubble_popup_delay'   => 5,
             'ofac_position'             => 'bottom-right',
             'ofac_width_desktop'        => 400,
             'ofac_height_desktop'       => 600,
@@ -799,6 +829,9 @@ class OFAC_Settings {
             'ofac_header_avatar_size',
             'ofac_auto_open',
             'ofac_auto_open_delay',
+            'ofac_bubble_popup_enabled',
+            'ofac_bubble_popup_text',
+            'ofac_bubble_popup_delay',
         );
 
         $settings = array();

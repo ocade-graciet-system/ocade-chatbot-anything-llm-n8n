@@ -79,6 +79,7 @@
     --ofac-modal-height: 600px;
     --ofac-trigger-size: 60px;
     --ofac-avatar-size: 48px;
+    --ofac-trigger-offset-bottom: 8.5rem;
 }
 
 /* Dark Theme */
@@ -2672,5 +2673,139 @@
     .ofac-access-denied__card {
         padding: var(--ofac-spacing-lg) var(--ofac-spacing-md);
         margin: 0 var(--ofac-spacing-md);
+    }
+}
+
+/* ==========================================================================
+   Bubble Popup (message above the floating trigger)
+   ========================================================================== */
+
+.ofac-bubble-popup {
+    position: fixed;
+    z-index: var(--ofac-z-base);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ofac-spacing-sm);
+    max-width: 260px;
+    padding: var(--ofac-spacing-sm) var(--ofac-spacing-md);
+    padding-right: calc(var(--ofac-spacing-md) + 18px);
+    background: #ffffff;
+    color: #1e293b;
+    font-size: var(--ofac-font-size-sm);
+    font-weight: 500;
+    line-height: 1.4;
+    border-radius: var(--ofac-radius-lg);
+    box-shadow: var(--ofac-shadow-lg);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(6px);
+    transition: opacity var(--ofac-transition), transform var(--ofac-transition);
+}
+
+[data-ofac-theme="dark"] .ofac-bubble-popup {
+    background: #f8fafc;
+    color: #0f172a;
+}
+
+.ofac-bubble-popup[hidden] {
+    display: none;
+}
+
+.ofac-bubble-popup--visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.ofac-bubble-popup__text {
+    flex: 1 1 auto;
+}
+
+.ofac-bubble-popup__close {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    border: none;
+    border-radius: var(--ofac-radius-full);
+    cursor: pointer;
+    opacity: 0.55;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity var(--ofac-transition), background-color var(--ofac-transition);
+}
+
+.ofac-bubble-popup__close:hover,
+.ofac-bubble-popup__close:focus-visible {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.06);
+    outline: none;
+}
+
+/* Arrow pointing to the bubble */
+.ofac-bubble-popup::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: inherit;
+    transform: rotate(45deg);
+    box-shadow: 2px 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+/* Position modifiers — anchored near the trigger */
+.ofac-bubble-popup--bottom-right {
+    right: var(--ofac-spacing-lg);
+    bottom: calc(var(--ofac-trigger-offset-bottom) + 14px);
+}
+.ofac-bubble-popup--bottom-right::after {
+    right: 22px;
+    bottom: -5px;
+}
+
+.ofac-bubble-popup--bottom-left {
+    left: var(--ofac-spacing-lg);
+    bottom: calc(var(--ofac-trigger-offset-bottom) + 14px);
+}
+.ofac-bubble-popup--bottom-left::after {
+    left: 22px;
+    bottom: -5px;
+}
+
+.ofac-bubble-popup--top-right {
+    right: var(--ofac-spacing-lg);
+    top: calc(var(--ofac-spacing-lg) + var(--ofac-trigger-size) + 14px);
+}
+.ofac-bubble-popup--top-right::after {
+    right: 22px;
+    top: -5px;
+    box-shadow: -2px -2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+.ofac-bubble-popup--top-left {
+    left: var(--ofac-spacing-lg);
+    top: calc(var(--ofac-spacing-lg) + var(--ofac-trigger-size) + 14px);
+}
+.ofac-bubble-popup--top-left::after {
+    left: 22px;
+    top: -5px;
+    box-shadow: -2px -2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 480px) {
+    .ofac-bubble-popup {
+        max-width: calc(100vw - 2 * var(--ofac-spacing-lg));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ofac-bubble-popup {
+        transition: none;
+        transform: none;
     }
 }

@@ -144,6 +144,55 @@ class OFAC_Chatbot {
     }
 
     /**
+     * Check if the dedicated-mode redirect bubble should be displayed
+     *
+     * @return bool
+     */
+    public function should_display_redirect_bubble() {
+        if ( ! $this->is_enabled() || is_admin() ) {
+            return false;
+        }
+
+        if ( isset( $GLOBALS['pagenow'] ) && 'wp-login.php' === $GLOBALS['pagenow'] ) {
+            return false;
+        }
+
+        if ( 'dedicated' !== $this->settings->get( 'ofac_display_mode', 'floating' ) ) {
+            return false;
+        }
+
+        if ( ! $this->settings->get( 'ofac_dedicated_show_bubble', false ) ) {
+            return false;
+        }
+
+        // Never show on the dedicated page itself
+        $page_id = (int) $this->settings->get( 'ofac_dedicated_page_id', 0 );
+        if ( $page_id && is_page( $page_id ) ) {
+            return false;
+        }
+
+        /**
+         * Filter whether to display the redirect bubble
+         *
+         * @since 1.2.0
+         * @param bool $display Whether to display the redirect bubble
+         */
+        return apply_filters( 'ofac_should_display_redirect_bubble', true );
+    }
+
+    /**
+     * Get the URL of the dedicated chatbot page
+     *
+     * @return string
+     */
+    public function get_dedicated_page_url() {
+        $page_id = (int) $this->settings->get( 'ofac_dedicated_page_id', 0 );
+        $url     = $page_id ? get_permalink( $page_id ) : '';
+
+        return $url ? $url : home_url( '/' );
+    }
+
+    /**
      * Generate session ID
      *
      * @return string

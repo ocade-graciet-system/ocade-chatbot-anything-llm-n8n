@@ -39,7 +39,11 @@ if ( ! defined( 'ABSPATH' ) ) {
         </span>
         <span class="ofac-trigger__badge" aria-hidden="true" style="display:none;">0</span>
     </button>
-    <?php endif; ?>
+
+    <?php if ( ! empty( $popup_enabled ) ) : ?>
+        <?php include OFAC_PLUGIN_DIR . 'templates/parts/bubble-popup.php'; ?>
+    <?php endif; // popup ?>
+    <?php endif; // !inline ?>
 
     <!-- Chat Window -->
     <div id="ofac-modal" 
